@@ -130,7 +130,7 @@
     </div>
     <div id="home-btn" onclick="goHome()">🏠 Início</div>
     <div id="block-list"></div>
-    <button id="add-block-btn" onclick="addBlock()">+ Novo bloco</button>
+    <button id="add-block-btn" onclick="addBlock()">+ Novo bloco de notas</button>
   </div>
 
   <div id="main">
@@ -320,9 +320,26 @@ function renderTopbar() {
     titleEl.appendChild(hint);
     titleEl.ondblclick = () => startRenameBlock(b.id, { stopPropagation: () => {} });
   } else {
+    titleEl.ondblclick = () => {
+      const inp = document.createElement('input');
+      inp.value = state.title;
+      inp.style.cssText = 'background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.4);outline:none;color:var(--text);font-size:15px;font-weight:500;font-family:var(--font);width:200px';
+      titleEl.replaceWith(inp);
+      inp.focus();
+      const done = () => {
+        state.title = inp.value.trim() || state.title;
+        save();
+        inp.replaceWith(titleEl);
+        titleEl.textContent = 'Início';
+        hint.textContent = '';
+        renderSidebar();
+      };
+      inp.onblur = done;
+      inp.onkeydown = e => { if (e.key === 'Enter') inp.blur(); };
+    };
     titleEl.textContent = 'Início';
-    hint.textContent = '';
-    titleEl.ondblclick = null;
+    hint.textContent = ' · duplo clique para editar o nome';
+    titleEl.appendChild(hint);
   }
   document.getElementById('home-btn').classList.toggle('active', !state.activeId);
 }
@@ -390,7 +407,7 @@ function renderChat(c, b) {
   c.appendChild(ia);
   const inp = document.getElementById('note-input');
   inp.onkeydown = ev => { if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); sendNote(); } };
-  inp.focus();
+  setTimeout(() => inp.focus(), 50);
 }
 
 function renderEntry(chat, b, e) {

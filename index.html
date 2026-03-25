@@ -160,6 +160,7 @@ let sidebarOpen  = true;
 let searchQuery  = "";
 let dragSrcId    = null;
 let unsubEntries = {};
+let clickTimer   = null;
 
 function setStatus(msg) {
   const el = document.getElementById("sync-status");
@@ -276,9 +277,8 @@ function renderSidebar() {
       <button class="pin-btn ${b.pinned ? "pinned" : ""}" onclick="togglePin('${b.id}',event)" title="${b.pinned ? "Desafixar" : "Fixar"}">📌</button>
       ${state.blocks.length > 1 ? `<button class="del-btn" onclick="deleteBlock('${b.id}',event)">×</button>` : ""}
     `;
-    let clickTimer = null;
     row.addEventListener("click", () => {
-      clickTimer = setTimeout(() => { state.activeId = b.id; render(); }, 200);
+      clickTimer = setTimeout(() => { state.activeId = b.id; render(); }, 220);
     });
     if (!b.pinned) {
       row.addEventListener("dragstart", () => { dragSrcId = b.id; setTimeout(() => row.style.opacity = ".3", 0); });
@@ -444,7 +444,7 @@ function renderChat(c, b) {
   c.appendChild(ia);
   const inp = document.getElementById("note-input");
   inp.onkeydown = ev => { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); sendNote(); } };
-  setTimeout(() => inp.focus(), 50);
+  setTimeout(() => { const inp = document.getElementById("note-input"); if (inp) { inp.focus(); inp.click(); } }, 150);
 }
 
 function renderEntry(chat, b, e) {

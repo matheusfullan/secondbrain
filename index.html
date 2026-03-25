@@ -1,126 +1,122 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Meu Espaço</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg:      #0A413B;
-      --sidebar: #083530;
-      --surface: #0d4e47;
-      --surface2:#0f5a52;
-      --border:  rgba(255,255,255,0.10);
-      --text:    #ffffff;
-      --text2:   rgba(255,255,255,0.60);
-      --text3:   rgba(255,255,255,0.35);
-      --accent:  #ffffff;
-      --acc-text:#0A413B;
-      --input-bg:rgba(255,255,255,0.07);
-      --font:    'Söhne', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0A413B;--sidebar:#083530;--surface:#0d4e47;--surface2:#0f5a52;
+      --border:rgba(255,255,255,.10);--text:#fff;--text2:rgba(255,255,255,.60);
+      --text3:rgba(255,255,255,.35);--accent:#fff;--acc-text:#0A413B;
+      --input-bg:rgba(255,255,255,.07);
+      --font:'Söhne',ui-sans-serif,system-ui,-apple-system,sans-serif;
     }
-    body { font-family: var(--font); background: var(--bg); color: var(--text); height: 100dvh; display: flex; overflow: hidden; }
-    #app { display: flex; width: 100%; height: 100dvh; }
-    #sidebar { width: 228px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; transition: width .2s; overflow: hidden; }
-    #sidebar.closed { width: 0; }
-    #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    body{font-family:var(--font);background:var(--bg);color:var(--text);height:100dvh;display:flex;overflow:hidden}
+    #app{display:flex;width:100%;height:100dvh}
 
-    #brand { padding: 14px 14px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
-    #brand-icon { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--acc-text); flex-shrink: 0; }
-    #brand-name { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* ── Sidebar ── */
+    #sidebar{width:228px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:width .2s;overflow:hidden}
+    #sidebar.mini{width:48px}
+    #sidebar.mini #search-wrap,
+    #sidebar.mini #block-list,
+    #sidebar.mini #add-block-btn,
+    #sidebar.mini .brand-name,
+    #sidebar.mini #home-label{display:none}
+    #sidebar.mini #brand{justify-content:center;padding:14px 0}
+    #sidebar.mini #home-btn{justify-content:center;padding:8px 0}
 
-    #search-wrap { padding: 10px 12px 6px; position: relative; }
-    #search-wrap::before { content: '⌕'; position: absolute; left: 22px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; pointer-events: none; }
-    #search { width: 100%; font-size: 13px; padding: 7px 10px 7px 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); outline: none; font-family: var(--font); }
+    #brand{padding:14px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+    #brand-icon{width:28px;height:28px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--acc-text);flex-shrink:0}
+    .brand-name{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    #home-btn { margin: 2px 8px 4px; padding: 7px 9px; border-radius: 8px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; }
-    #home-btn:hover, #home-btn.active { background: rgba(255,255,255,0.12); }
+    #search-wrap{padding:10px 12px 6px;position:relative}
+    #search-wrap::before{content:'⌕';position:absolute;left:22px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+    #search{width:100%;font-size:13px;padding:7px 10px 7px 28px;border-radius:8px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);outline:none;font-family:var(--font)}
 
-    #block-list { flex: 1; overflow-y: auto; padding: 0 8px; }
-    .list-label { font-size: 10px; color: var(--text3); padding: 8px 8px 3px; text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
+    #home-btn{margin:2px 8px 4px;padding:7px 9px;border-radius:8px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px}
+    #home-btn:hover,#home-btn.active{background:rgba(255,255,255,.12)}
 
-    .block-row { display: flex; align-items: center; gap: 5px; padding: 7px 9px; border-radius: 8px; cursor: pointer; margin-bottom: 1px; font-size: 13px; transition: background .1s; }
-    .block-row:hover { background: rgba(255,255,255,0.07); }
-    .block-row.active { background: rgba(255,255,255,0.15); font-weight: 500; }
-    .block-row.dragover { background: var(--surface2); }
-    .drag-handle { font-size: 11px; color: var(--text3); cursor: grab; letter-spacing: -1px; flex-shrink: 0; }
-    .block-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .block-count { font-size: 11px; color: var(--text3); flex-shrink: 0; }
-    .pin-btn, .del-btn { background: none; border: none; cursor: pointer; font-size: 11px; flex-shrink: 0; opacity: 0.25; color: var(--text); transition: opacity .15s; }
-    .pin-btn.pinned, .block-row:hover .pin-btn, .block-row:hover .del-btn { opacity: 1; }
-    .del-btn { font-size: 15px; }
-    .block-name-input { flex: 1; background: transparent; border: none; outline: none; color: var(--text); font-size: 13px; font-family: var(--font); min-width: 0; }
+    #block-list{flex:1;overflow-y:auto;padding:0 8px}
+    .list-label{font-size:10px;color:var(--text3);padding:8px 8px 3px;text-transform:uppercase;letter-spacing:.08em;font-weight:500}
 
-    #add-block-btn { margin: 10px; padding: 8px; font-size: 13px; background: none; border: 1px dashed rgba(255,255,255,0.2); border-radius: 8px; cursor: pointer; color: var(--text2); font-family: var(--font); width: calc(100% - 20px); transition: border-color .15s, color .15s; }
-    #add-block-btn:hover { border-color: rgba(255,255,255,0.5); color: var(--text); }
+    .block-row{display:flex;align-items:center;gap:5px;padding:7px 9px;border-radius:8px;cursor:pointer;margin-bottom:1px;font-size:13px;transition:background .1s}
+    .block-row:hover{background:rgba(255,255,255,.07)}
+    .block-row.active{background:rgba(255,255,255,.15);font-weight:500}
+    .block-row.dragover{background:var(--surface2)}
+    .drag-handle{font-size:11px;color:var(--text3);cursor:grab;letter-spacing:-1px;flex-shrink:0}
+    .block-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .block-count{font-size:11px;color:var(--text3);flex-shrink:0}
+    .pin-btn,.del-btn{background:none;border:none;cursor:pointer;font-size:11px;flex-shrink:0;opacity:.25;color:var(--text);transition:opacity .15s}
+    .pin-btn.pinned,.block-row:hover .pin-btn,.block-row:hover .del-btn{opacity:1}
+    .del-btn{font-size:15px}
+    .block-name-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:13px;font-family:var(--font);min-width:0}
 
-    #topbar { display: flex; align-items: center; gap: 10px; padding: 11px 18px; border-bottom: 1px solid var(--border); background: var(--sidebar); flex-shrink: 0; }
-    #toggle-btn { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 17px; padding: 3px 5px; border-radius: 6px; }
-    #sidebar.collapsed { width: 48px; }
-    #sidebar.collapsed #search-wrap,
-    #sidebar.collapsed #home-btn span,
-    #sidebar.collapsed #block-list,
-    #sidebar.collapsed #add-block-btn { display: none; }
-    #sidebar.collapsed #brand-name { display: none; }
-    #sidebar.collapsed #brand { justify-content: center; padding: 14px 0; }
-    #sidebar.collapsed #home-btn { justify-content: center; padding: 7px 0; }
-    #sidebar.collapsed #home-btn::before { content: '🏠'; }
-    #topbar-title { font-size: 15px; font-weight: 500; flex: 1; cursor: default; }
-    #topbar-hint { font-size: 11px; font-weight: 400; color: var(--text3); margin-left: 10px; }
+    #add-block-btn{margin:10px;padding:8px;font-size:13px;background:none;border:1px dashed rgba(255,255,255,.2);border-radius:8px;cursor:pointer;color:var(--text2);font-family:var(--font);width:calc(100% - 20px);transition:border-color .15s,color .15s}
+    #add-block-btn:hover{border-color:rgba(255,255,255,.5);color:var(--text)}
 
-    #home { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; gap: 32px; overflow-y: auto; }
-    #home-title { font-size: 36px; font-weight: 600; letter-spacing: -.5px; cursor: text; border: none; background: transparent; color: var(--text); text-align: center; font-family: var(--font); outline: none; border-bottom: 2px solid transparent; }
-    #home-title:focus { border-bottom-color: rgba(255,255,255,0.3); }
-    #home-sub { font-size: 14px; color: var(--text2); margin-top: 8px; text-align: center; }
-    #block-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; width: 100%; max-width: 480px; }
-    .block-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 16px; cursor: pointer; transition: background .15s, transform .1s; }
-    .block-card:hover { background: var(--surface2); transform: translateY(-2px); }
-    .block-card-name { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; }
-    .block-card-count { font-size: 11px; color: var(--text3); }
-    .block-card-add { background: transparent; border: 1px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 18px 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text2); transition: border-color .15s; }
-    .block-card-add:hover { border-color: rgba(255,255,255,0.5); color: var(--text); }
+    /* ── Main ── */
+    #main{flex:1;display:flex;flex-direction:column;min-width:0}
+    #topbar{display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--border);background:var(--sidebar);flex-shrink:0}
+    #toggle-btn{background:none;border:none;cursor:pointer;color:var(--text2);font-size:17px;padding:3px 5px;border-radius:6px}
+    #topbar-title{font-size:15px;font-weight:500;flex:1;cursor:default}
+    #topbar-hint{font-size:11px;font-weight:400;color:var(--text3);margin-left:10px}
+    #sync-status{font-size:11px;color:var(--text3);padding:5px 18px;text-align:right;flex-shrink:0;background:var(--sidebar);border-bottom:1px solid var(--border)}
 
-    #chat { flex: 1; overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 14px; }
-    #chat-empty { color: var(--text3); font-size: 14px; margin: auto; text-align: center; line-height: 2; }
+    /* ── Home ── */
+    #home{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:32px;overflow-y:auto}
+    #home-title{font-size:36px;font-weight:600;letter-spacing:-.5px;cursor:text;border:none;background:transparent;color:var(--text);text-align:center;font-family:var(--font);outline:none;border-bottom:2px solid transparent}
+    #home-title:focus{border-bottom-color:rgba(255,255,255,.3)}
+    #home-sub{font-size:14px;color:var(--text2);margin-top:8px;text-align:center}
+    #block-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;width:100%;max-width:480px}
+    .block-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 16px;cursor:pointer;transition:background .15s,transform .1s}
+    .block-card:hover{background:var(--surface2);transform:translateY(-2px)}
+    .block-card-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px}
+    .block-card-count{font-size:11px;color:var(--text3)}
+    .block-card-add{background:transparent;border:1px dashed rgba(255,255,255,.2);border-radius:12px;padding:18px 16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text2);transition:border-color .15s}
+    .block-card-add:hover{border-color:rgba(255,255,255,.5);color:var(--text)}
 
-    .entry { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
-    .bubble { max-width: 75%; background: var(--surface); border: 1px solid var(--border); border-radius: 14px 14px 4px 14px; padding: 11px 15px 8px; font-size: 14px; line-height: 1.7; word-break: break-word; }
-    .bubble b { font-weight: 700; }
-    .bubble i { font-style: italic; }
-    .bubble u { text-decoration: underline; }
-    .fmt-toolbar { display: none; gap: 4px; margin-bottom: 6px; }
-    #input-area:focus-within .fmt-toolbar { display: flex; }
-    .fmt-btn { background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 5px; color: var(--text2); cursor: pointer; font-size: 12px; padding: 2px 8px; font-family: var(--font); }
-    .fmt-btn:hover { background: rgba(255,255,255,0.15); color: var(--text); }
-    .bubble-actions { display: flex; gap: 10px; margin-top: 6px; justify-content: flex-end; }
-    .bubble-btn { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--text3); }
-    .entry-ts { font-size: 11px; color: var(--text3); padding-right: 4px; }
+    /* ── Chat ── */
+    #chat{flex:1;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:14px}
+    #chat-empty{color:var(--text3);font-size:14px;margin:auto;text-align:center;line-height:2}
+    .entry{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+    .bubble{max-width:75%;background:var(--surface);border:1px solid var(--border);border-radius:14px 14px 4px 14px;padding:11px 15px 8px;font-size:14px;line-height:1.7;word-break:break-word}
+    .bubble b{font-weight:700}
+    .bubble i{font-style:italic}
+    .bubble u{text-decoration:underline}
+    .bubble-actions{display:flex;gap:10px;margin-top:6px;justify-content:flex-end}
+    .bubble-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3)}
+    .entry-ts{font-size:11px;color:var(--text3);padding-right:4px}
+    .edit-box{width:75%;display:flex;flex-direction:column;gap:7px}
+    .edit-textarea{width:100%;font-size:14px;padding:11px 15px;border-radius:14px 14px 4px 14px;border:1px solid rgba(255,255,255,.3);background:var(--surface);color:var(--text);outline:none;resize:vertical;line-height:1.6;font-family:var(--font)}
+    .edit-actions{display:flex;gap:6px;justify-content:flex-end}
+    .btn-cancel{font-size:12px;padding:4px 14px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--text2);font-family:var(--font)}
+    .btn-save{font-size:12px;padding:4px 14px;border-radius:6px;border:none;background:var(--accent);color:var(--acc-text);cursor:pointer;font-family:var(--font);font-weight:500}
 
-    .edit-box { width: 75%; display: flex; flex-direction: column; gap: 7px; }
-    .edit-textarea { width: 100%; font-size: 14px; padding: 11px 15px; border-radius: 14px 14px 4px 14px; border: 1px solid rgba(255,255,255,0.3); background: var(--surface); color: var(--text); outline: none; resize: vertical; line-height: 1.6; font-family: var(--font); }
-    .edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
-    .btn-cancel { font-size: 12px; padding: 4px 14px; border-radius: 6px; border: 1px solid var(--border); background: none; cursor: pointer; color: var(--text2); font-family: var(--font); }
-    .btn-save { font-size: 12px; padding: 4px 14px; border-radius: 6px; border: none; background: var(--accent); color: var(--acc-text); cursor: pointer; font-family: var(--font); font-weight: 500; }
+    /* ── Input ── */
+    #input-area{padding:10px 18px 14px;border-top:1px solid var(--border);display:flex;align-items:flex-end;gap:8px;flex-shrink:0;background:var(--sidebar)}
+    #input-col{flex:1;display:flex;flex-direction:column;gap:5px}
+    .fmt-toolbar{display:flex;gap:4px}
+    .fmt-btn{background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;font-size:12px;padding:2px 9px;font-family:var(--font);line-height:1.6}
+    .fmt-btn:hover{background:rgba(255,255,255,.18);color:var(--text)}
+    #note-input{font-size:14px;padding:10px 15px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);outline:none;resize:none;line-height:1.6;font-family:var(--font);width:100%}
+    #send-btn{background:var(--accent);color:var(--acc-text);border:none;border-radius:10px;padding:0 18px;font-size:20px;cursor:pointer;flex-shrink:0;font-weight:700;height:44px}
+    #send-btn:hover{background:#f0f0f0}
 
-    #input-area { padding: 12px 18px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; background: var(--sidebar); }
-    #note-input { flex: 1; font-size: 14px; padding: 10px 15px; border-radius: 10px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); outline: none; resize: none; line-height: 1.6; font-family: var(--font); }
-    #send-btn { background: var(--accent); color: var(--acc-text); border: none; border-radius: 10px; padding: 0 18px; font-size: 20px; cursor: pointer; flex-shrink: 0; font-weight: 700; }
-    #send-btn:hover { background: #f0f0f0; }
+    /* ── Search results ── */
+    .result-card{padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:4px;background:var(--surface);border:1px solid var(--border)}
+    .result-block{font-size:10px;color:rgba(255,255,255,.5);margin-bottom:2px;text-transform:uppercase;letter-spacing:.06em}
+    .result-text{font-size:13px;line-height:1.5;word-break:break-word}
+    mark{background:rgba(255,255,255,.25);color:#fff;border-radius:2px;padding:0 2px}
 
-    .result-card { padding: 8px 10px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; background: var(--surface); border: 1px solid var(--border); }
-    .result-block { font-size: 10px; color: rgba(255,255,255,0.5); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .06em; }
-    .result-text { font-size: 13px; line-height: 1.5; word-break: break-word; }
-    mark { background: rgba(255,255,255,0.25); color: #fff; border-radius: 2px; padding: 0 2px; }
-
-    #sync-status { font-size: 11px; color: var(--text3); padding: 6px 14px; text-align: right; flex-shrink: 0; }
-
-    @media (max-width: 600px) {
-      #sidebar { width: 200px; }
-      #chat { padding: 16px; }
-      #input-area { padding: 10px 12px 14px; }
-      #home { padding: 24px 16px; }
-      #home-title { font-size: 26px; }
+    @media(max-width:600px){
+      #sidebar{width:200px}
+      #sidebar.mini{width:40px}
+      #chat{padding:16px}
+      #input-area{padding:10px 12px 14px}
+      #home{padding:24px 16px}
+      #home-title{font-size:26px}
     }
   </style>
 </head>
@@ -129,12 +125,12 @@
   <div id="sidebar">
     <div id="brand">
       <div id="brand-icon">M</div>
-      <div id="brand-name">Meu Espaço</div>
+      <div class="brand-name" id="brand-name-el">Meu Espaço</div>
     </div>
     <div id="search-wrap">
-      <input id="search" placeholder="Buscar em tudo..." oninput="onSearch(this.value)" />
+      <input id="search" placeholder="Buscar em tudo..." oninput="onSearch(this.value)"/>
     </div>
-    <div id="home-btn" onclick="goHome()">🏠 Início</div>
+    <div id="home-btn" onclick="goHome()">🏠 <span id="home-label">Início</span></div>
     <div id="block-list"></div>
     <button id="add-block-btn" onclick="addBlock()">+ Novo bloco de notas</button>
   </div>
@@ -149,171 +145,129 @@
 </div>
 
 <script type="module">
-import { initializeApp }                          from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc,
-         collection, onSnapshot, addDoc,
-         updateDoc, deleteDoc, query,
-         orderBy }                                from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import{initializeApp}from"https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import{getFirestore,doc,getDoc,setDoc,collection,onSnapshot,addDoc,updateDoc,deleteDoc,query,orderBy}from"https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-// ── Firebase config ──
-const app = initializeApp({
-  apiKey:            "AIzaSyAejnoowXpV_gt8-wE6XORtufWOwyy6HDg",
-  authDomain:        "secondbrain-b9928.firebaseapp.com",
-  projectId:         "secondbrain-b9928",
-  storageBucket:     "secondbrain-b9928.firebasestorage.app",
-  messagingSenderId: "124773998398",
-  appId:             "1:124773998398:web:e3ee36dcb70ac44e44166f"
+const app=initializeApp({
+  apiKey:"AIzaSyAejnoowXpV_gt8-wE6XORtufWOwyy6HDg",
+  authDomain:"secondbrain-b9928.firebaseapp.com",
+  projectId:"secondbrain-b9928",
+  storageBucket:"secondbrain-b9928.firebasestorage.app",
+  messagingSenderId:"124773998398",
+  appId:"1:124773998398:web:e3ee36dcb70ac44e44166f"
 });
-const db = getFirestore(app);
+const db=getFirestore(app);
+const metaRef=doc(db,"app","meta");
+const blocksCol=collection(db,"blocks");
 
-// ── Refs ──
-const metaRef    = doc(db, "app", "meta");
-const blocksCol  = collection(db, "blocks");
+let state={title:"Meu Espaço",activeId:null,blocks:[]};
+let sidebarOpen=true,sidebarMini=false,searchQuery="",dragSrcId=null,clickTimer=null;
+let unsubEntries={};
 
-// ── State ──
-let state = { title: "Meu Espaço", activeId: null, blocks: [] };
-let sidebarOpen  = true;
-let searchQuery  = "";
-let dragSrcId    = null;
-let unsubEntries = {};
-let clickTimer   = null;
-
-function setStatus(msg) {
-  const el = document.getElementById("sync-status");
-  if (el) el.textContent = msg;
-}
-
-function uid() { return Math.random().toString(36).slice(2, 9); }
-
-function sorted() {
-  return [...state.blocks.filter(b => b.pinned), ...state.blocks.filter(b => !b.pinned)];
-}
+function setStatus(m){const el=document.getElementById("sync-status");if(el)el.textContent=m;}
+function uid(){return Math.random().toString(36).slice(2,9);}
+function sorted(){return[...state.blocks.filter(b=>b.pinned),...state.blocks.filter(b=>!b.pinned)];}
 
 // ── Bootstrap ──
-async function bootstrap() {
-  // Load / create meta
-  const metaSnap = await getDoc(metaRef);
-  if (metaSnap.exists()) {
-    state.title = metaSnap.data().title || "Meu Espaço";
-  } else {
-    await setDoc(metaRef, { title: "Meu Espaço" });
-  }
+async function bootstrap(){
+  const ms=await getDoc(metaRef);
+  if(ms.exists())state.title=ms.data().title||"Meu Espaço";
+  else await setDoc(metaRef,{title:"Meu Espaço"});
 
-  // Listen to blocks
-  const bQuery = query(blocksCol, orderBy("order"));
-  onSnapshot(bQuery, async snap => {
-    if (snap.empty) {
-      // Create default blocks
-      const defaults = ["Ideias gerais", "Clientes", "Projetos"];
-      for (let i = 0; i < defaults.length; i++) {
-        await addDoc(blocksCol, { name: defaults[i], pinned: false, order: i });
-      }
+  const bq=query(blocksCol,orderBy("order"));
+  onSnapshot(bq,async snap=>{
+    if(snap.empty){
+      for(let i=0;i<3;i++)await addDoc(blocksCol,{name:["Ideias gerais","Clientes","Projetos"][i],pinned:false,order:i});
       return;
     }
-    const prev = state.blocks.map(b => b.id);
-    state.blocks = snap.docs.map(d => ({ id: d.id, ...d.data(), entries: (state.blocks.find(b => b.id === d.id)?.entries || []) }));
-    // Subscribe entries for new blocks
-    state.blocks.forEach(b => {
-      if (!unsubEntries[b.id]) subscribeEntries(b.id);
-    });
-    // Unsubscribe removed blocks
-    prev.forEach(id => {
-      if (!state.blocks.find(b => b.id === id) && unsubEntries[id]) {
-        unsubEntries[id](); delete unsubEntries[id];
-      }
-    });
+    state.blocks=snap.docs.map(d=>({id:d.id,...d.data(),entries:state.blocks.find(b=>b.id===d.id)?.entries||[]}));
+    state.blocks.forEach(b=>{if(!unsubEntries[b.id])subEntries(b.id);});
+    // unsub removed
+    Object.keys(unsubEntries).forEach(id=>{if(!state.blocks.find(b=>b.id===id)){unsubEntries[id]();delete unsubEntries[id];}});
     setStatus("Sincronizado ✓");
     render();
   });
 }
 
-function subscribeEntries(blockId) {
-  const eCol   = collection(db, "blocks", blockId, "entries");
-  const eQuery = query(eCol, orderBy("createdAt"));
-  unsubEntries[blockId] = onSnapshot(eQuery, snap => {
-    const b = state.blocks.find(x => x.id === blockId);
-    if (!b) return;
-    b.entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (state.activeId === blockId) renderContent();
+function subEntries(blockId){
+  const eq=query(collection(db,"blocks",blockId,"entries"),orderBy("createdAt"));
+  unsubEntries[blockId]=onSnapshot(eq,snap=>{
+    const b=state.blocks.find(x=>x.id===blockId);
+    if(!b)return;
+    b.entries=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(state.activeId===blockId)renderContent();
     renderSidebar();
   });
 }
 
 // ── Sidebar ──
-function toggleSidebar() {
-  sidebarOpen = !sidebarOpen;
-  const sb = document.getElementById("sidebar");
-  sb.classList.toggle("collapsed", !sidebarOpen);
-}
+window.toggleSidebar=function(){
+  sidebarMini=!sidebarMini;
+  document.getElementById("sidebar").classList.toggle("mini",sidebarMini);
+};
 
-function onSearch(v) { searchQuery = v; renderSidebar(); }
+window.onSearch=function(v){searchQuery=v;renderSidebar();};
 
-function renderSidebar() {
-  const list = document.getElementById("block-list");
-  document.getElementById("brand-name").textContent = state.title;
+function renderSidebar(){
+  const list=document.getElementById("block-list");
+  document.getElementById("brand-name-el").textContent=state.title;
+  document.getElementById("home-btn").classList.toggle("active",!state.activeId);
 
-  if (searchQuery.trim().length > 1) {
-    const q = searchQuery.toLowerCase();
-    const results = state.blocks.flatMap(b => {
-      const entries = b.entries || [];
-      return entries.filter(e => typeof e.text === "string" && e.text.toLowerCase().includes(q))
-        .map(e => ({ blockName: b.name, blockId: b.id, entry: e }));
+  if(searchQuery.trim().length>1){
+    const q=searchQuery.toLowerCase();
+    // search across all blocks using latest entries
+    const results=state.blocks.flatMap(b=>
+      (b.entries||[]).filter(e=>typeof e.text==="string"&&e.text.toLowerCase().includes(q))
+        .map(e=>({blockName:b.name,blockId:b.id,entry:e}))
+    );
+    list.innerHTML=`<div class="list-label">${results.length} resultado${results.length!==1?"s":""}</div>`;
+    if(!results.length){list.innerHTML+=`<div style="font-size:13px;color:var(--text2);padding:8px 6px">Nenhum resultado.</div>`;}
+    else results.forEach(({blockName,blockId,entry})=>{
+      const d=document.createElement("div");
+      d.className="result-card";
+      d.innerHTML=`<div class="result-block">${escHtml(blockName)}</div><div class="result-text">${hilite(entry.text.slice(0,80)+(entry.text.length>80?"…":""),searchQuery)}</div>`;
+      d.onclick=()=>{state.activeId=blockId;searchQuery="";document.getElementById("search").value="";render();};
+      list.appendChild(d);
     });
-    list.innerHTML = `<div class="list-label">${results.length} resultado${results.length !== 1 ? "s" : ""}</div>`;
-    if (!results.length) {
-      list.innerHTML += `<div style="font-size:13px;color:var(--text2);padding:8px 6px">Nenhum resultado.</div>`;
-    } else {
-      results.forEach(({ blockName, blockId, entry }) => {
-        const d = document.createElement("div");
-        d.className = "result-card";
-        d.innerHTML = `<div class="result-block">${blockName}</div><div class="result-text">${hilite(entry.text.slice(0, 80) + (entry.text.length > 80 ? "…" : ""), searchQuery)}</div>`;
-        d.onclick = () => { state.activeId = blockId; searchQuery = ""; document.getElementById("search").value = ""; render(); };
-        list.appendChild(d);
-      });
-    }
     return;
   }
 
-  list.innerHTML = "";
-  const bs = sorted();
-  const hasPinned = bs.some(b => b.pinned);
-  let shownPin = false, shownBlock = false;
+  list.innerHTML="";
+  const bs=sorted();
+  const hasPinned=bs.some(b=>b.pinned);
+  let sp=false,sb=false;
 
-  bs.forEach(b => {
-    if (b.pinned && !shownPin)    { list.insertAdjacentHTML("beforeend", `<div class="list-label">Fixados</div>`);     shownPin = true; }
-    if (!b.pinned && hasPinned && !shownBlock) { list.insertAdjacentHTML("beforeend", `<div class="list-label">Blocos</div>`); shownBlock = true; }
+  bs.forEach(b=>{
+    if(b.pinned&&!sp){list.insertAdjacentHTML("beforeend",`<div class="list-label">Fixados</div>`);sp=true;}
+    if(!b.pinned&&hasPinned&&!sb){list.insertAdjacentHTML("beforeend",`<div class="list-label">Blocos</div>`);sb=true;}
 
-    const row = document.createElement("div");
-    row.className = "block-row" + (state.activeId === b.id ? " active" : "");
-    row.dataset.id = b.id;
-    row.draggable = !b.pinned;
-    row.innerHTML = `
-      ${!b.pinned ? `<span class="drag-handle">⠿</span>` : ""}
-      <span class="block-name" ondblclick="startRenameBlock('${b.id}',event)">${escHtml(b.name)}</span>
+    const row=document.createElement("div");
+    row.className="block-row"+(state.activeId===b.id?" active":"");
+    row.dataset.id=b.id;
+    row.draggable=!b.pinned;
+    row.innerHTML=`
+      ${!b.pinned?`<span class="drag-handle">⠿</span>`:""}
+      <span class="block-name" ondblclick="renameBlock('${b.id}',event)">${escHtml(b.name)}</span>
       <span class="block-count">${(b.entries||[]).length}</span>
-      <button class="pin-btn ${b.pinned ? "pinned" : ""}" onclick="togglePin('${b.id}',event)" title="${b.pinned ? "Desafixar" : "Fixar"}">📌</button>
-      ${state.blocks.length > 1 ? `<button class="del-btn" onclick="deleteBlock('${b.id}',event)">×</button>` : ""}
-    `;
-    row.addEventListener("click", () => {
-      clickTimer = setTimeout(() => { state.activeId = b.id; render(); }, 220);
-    });
-    if (!b.pinned) {
-      row.addEventListener("dragstart", () => { dragSrcId = b.id; setTimeout(() => row.style.opacity = ".3", 0); });
-      row.addEventListener("dragend",   () => { row.style.opacity = "1"; dragSrcId = null; });
-      row.addEventListener("dragover",  e  => { e.preventDefault(); row.classList.add("dragover"); });
-      row.addEventListener("dragleave", () => row.classList.remove("dragover"));
-      row.addEventListener("drop", async () => {
+      <button class="pin-btn ${b.pinned?"pinned":""}" onclick="togglePin('${b.id}',event)" title="${b.pinned?"Desafixar":"Fixar"}">📌</button>
+      ${state.blocks.length>1?`<button class="del-btn" onclick="deleteBlock('${b.id}',event)">×</button>`:""}`;
+
+    row.addEventListener("click",()=>{clickTimer=setTimeout(()=>{state.activeId=b.id;render();},220);});
+
+    if(!b.pinned){
+      row.addEventListener("dragstart",()=>{dragSrcId=b.id;setTimeout(()=>row.style.opacity=".3",0);});
+      row.addEventListener("dragend",()=>{row.style.opacity="1";dragSrcId=null;});
+      row.addEventListener("dragover",e=>{e.preventDefault();row.classList.add("dragover");});
+      row.addEventListener("dragleave",()=>row.classList.remove("dragover"));
+      row.addEventListener("drop",async()=>{
         row.classList.remove("dragover");
-        if (!dragSrcId || dragSrcId === b.id) return;
-        const src = state.blocks.find(x => x.id === dragSrcId);
-        if (src?.pinned) return;
-        const si = state.blocks.findIndex(x => x.id === dragSrcId);
-        const ti = state.blocks.findIndex(x => x.id === b.id);
-        state.blocks.splice(si, 1); state.blocks.splice(ti, 0, src);
-        // Persist order
-        for (let i = 0; i < state.blocks.length; i++) {
-          await updateDoc(doc(db, "blocks", state.blocks[i].id), { order: i });
-        }
+        if(!dragSrcId||dragSrcId===b.id)return;
+        const src=state.blocks.find(x=>x.id===dragSrcId);
+        if(src?.pinned)return;
+        const si=state.blocks.findIndex(x=>x.id===dragSrcId);
+        const ti=state.blocks.findIndex(x=>x.id===b.id);
+        state.blocks.splice(si,1);state.blocks.splice(ti,0,src);
+        for(let i=0;i<state.blocks.length;i++)await updateDoc(doc(db,"blocks",state.blocks[i].id),{order:i});
         renderSidebar();
       });
     }
@@ -321,235 +275,264 @@ function renderSidebar() {
   });
 }
 
-window.startRenameBlock = function(id, e) {
+window.renameBlock=function(id,e){
   e.stopPropagation();
-  if (typeof clickTimer !== "undefined") clearTimeout(clickTimer);
-  const row = document.querySelector(`.block-row[data-id="${id}"]`);
-  if (!row) return;
-  const nameEl = row.querySelector(".block-name");
-  const b = state.blocks.find(x => x.id === id);
-  const inp = document.createElement("input");
-  inp.className = "block-name-input"; inp.value = b.name;
-  nameEl.replaceWith(inp); inp.focus();
-  const done = async () => {
-    const val = inp.value.trim() || b.name;
-    await updateDoc(doc(db, "blocks", id), { name: val });
-  };
-  inp.onblur = done;
-  inp.onkeydown = ev => { if (ev.key === "Enter") inp.blur(); };
+  clearTimeout(clickTimer);
+  const row=document.querySelector(`.block-row[data-id="${id}"]`);
+  if(!row)return;
+  const nameEl=row.querySelector(".block-name");
+  const b=state.blocks.find(x=>x.id===id);
+  const inp=document.createElement("input");
+  inp.className="block-name-input";inp.value=b.name;
+  nameEl.replaceWith(inp);inp.focus();inp.select();
+  const done=async()=>{const v=inp.value.trim()||b.name;await updateDoc(doc(db,"blocks",id),{name:v});};
+  inp.onblur=done;
+  inp.onkeydown=ev=>{if(ev.key==="Enter")inp.blur();ev.stopPropagation();};
 };
 
-window.togglePin = async function(id, e) {
+window.togglePin=async function(id,e){
   e.stopPropagation();
-  const b = state.blocks.find(x => x.id === id);
-  if (b) await updateDoc(doc(db, "blocks", id), { pinned: !b.pinned });
+  const b=state.blocks.find(x=>x.id===id);
+  if(b)await updateDoc(doc(db,"blocks",id),{pinned:!b.pinned});
 };
 
-window.deleteBlock = async function(id, e) {
+window.deleteBlock=async function(id,e){
   e.stopPropagation();
-  if (state.blocks.length <= 1) return;
-  await deleteDoc(doc(db, "blocks", id));
-  if (state.activeId === id) { state.activeId = null; render(); }
+  if(state.blocks.length<=1)return;
+  await deleteDoc(doc(db,"blocks",id));
+  if(state.activeId===id){state.activeId=null;render();}
 };
 
-window.addBlock = async function() {
-  const order = state.blocks.length;
-  const ref = await addDoc(blocksCol, { name: "Novo bloco de notas", pinned: false, order });
-  state.activeId = ref.id;
-  render();
-  setTimeout(() => {
-    const row = document.querySelector(`.block-row[data-id="${ref.id}"] .block-name`);
-    if (row) row.dispatchEvent(new MouseEvent("dblclick"));
-  }, 200);
+window.addBlock=async function(){
+  const order=state.blocks.length;
+  const ref=await addDoc(blocksCol,{name:"Novo bloco de notas",pinned:false,order});
+  state.activeId=ref.id;render();
+  setTimeout(()=>{
+    const row=document.querySelector(`.block-row[data-id="${ref.id}"] .block-name`);
+    if(row)row.dispatchEvent(new MouseEvent("dblclick"));
+  },300);
 };
 
-window.goHome = function() { state.activeId = null; render(); };
+window.goHome=function(){state.activeId=null;render();};
 
 // ── Topbar ──
-function renderTopbar() {
-  const b = state.blocks.find(x => x.id === state.activeId);
-  const titleEl = document.getElementById("topbar-title");
-  const hint    = document.getElementById("topbar-hint");
-
-  if (b) {
-    titleEl.textContent = (b.pinned ? "📌 " : "") + b.name;
-    hint.textContent = " · duplo clique para renomear";
-    titleEl.appendChild(hint);
-    titleEl.ondblclick = () => startRenameBlock(b.id, { stopPropagation: () => {} });
-  } else {
-    titleEl.ondblclick = () => {
-      const inp = document.createElement("input");
-      inp.value = state.title;
-      inp.style.cssText = "background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.4);outline:none;color:var(--text);font-size:15px;font-weight:500;font-family:var(--font);width:200px";
-      titleEl.replaceWith(inp); inp.focus();
-      const done = async () => {
-        state.title = inp.value.trim() || state.title;
-        await setDoc(metaRef, { title: state.title });
-        inp.replaceWith(titleEl);
-        titleEl.textContent = "Início";
-        hint.textContent = " · duplo clique para editar o nome";
-        titleEl.appendChild(hint);
-        renderSidebar();
+function renderTopbar(){
+  const b=state.blocks.find(x=>x.id===state.activeId);
+  const te=document.getElementById("topbar-title");
+  const hint=document.getElementById("topbar-hint");
+  if(b){
+    te.textContent=(b.pinned?"📌 ":"")+b.name;
+    hint.textContent=" · duplo clique para renomear";
+    te.appendChild(hint);
+    te.ondblclick=()=>renameBlock(b.id,{stopPropagation:()=>{}});
+  }else{
+    te.ondblclick=()=>{
+      const inp=document.createElement("input");
+      inp.value=state.title;
+      inp.style.cssText="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.4);outline:none;color:var(--text);font-size:15px;font-weight:500;font-family:var(--font);width:200px";
+      te.replaceWith(inp);inp.focus();
+      const done=async()=>{
+        state.title=inp.value.trim()||state.title;
+        await setDoc(metaRef,{title:state.title});
+        inp.replaceWith(te);te.textContent="Início";
+        hint.textContent=" · duplo clique para editar";
+        te.appendChild(hint);renderSidebar();
       };
-      inp.onblur = done;
-      inp.onkeydown = ev => { if (ev.key === "Enter") inp.blur(); };
+      inp.onblur=done;inp.onkeydown=ev=>{if(ev.key==="Enter")inp.blur();};
     };
-    titleEl.textContent = "Início";
-    hint.textContent = " · duplo clique para editar o nome";
-    titleEl.appendChild(hint);
+    te.textContent="Início";
+    hint.textContent=" · duplo clique para editar";
+    te.appendChild(hint);
   }
-  document.getElementById("home-btn").classList.toggle("active", !state.activeId);
+  document.getElementById("home-btn").classList.toggle("active",!state.activeId);
 }
 
 // ── Content ──
-function render() { renderSidebar(); renderTopbar(); renderContent(); }
+function render(){renderSidebar();renderTopbar();renderContent();}
 
-function renderContent() {
-  const c = document.getElementById("content");
-  c.innerHTML = "";
-  c.style.cssText = "flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden";
-  if (!state.activeId) { renderHome(c); return; }
-  const b = state.blocks.find(x => x.id === state.activeId);
-  if (!b) { state.activeId = null; renderHome(c); return; }
-  renderChat(c, b);
+function renderContent(){
+  const c=document.getElementById("content");
+  c.innerHTML="";
+  c.style.cssText="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden";
+  if(!state.activeId){renderHome(c);return;}
+  const b=state.blocks.find(x=>x.id===state.activeId);
+  if(!b){state.activeId=null;renderHome(c);return;}
+  renderChat(c,b);
 }
 
-function renderHome(c) {
-  c.innerHTML = `
+function renderHome(c){
+  c.innerHTML=`
     <div id="home">
       <div style="text-align:center">
-        <input id="home-title" value="${escHtml(state.title)}" placeholder="Meu Espaço" />
+        <input id="home-title" value="${escHtml(state.title)}" placeholder="Meu Espaço"/>
         <div id="home-sub">Duplo clique no título para editar · Selecione um bloco para começar</div>
       </div>
       <div id="block-grid"></div>
     </div>`;
-  const ti = document.getElementById("home-title");
-  ti.onblur    = async () => { state.title = ti.value.trim() || state.title; await setDoc(metaRef, { title: state.title }); renderSidebar(); };
-  ti.onkeydown = e => { if (e.key === "Enter") ti.blur(); };
-
-  const grid = document.getElementById("block-grid");
-  sorted().forEach(b => {
-    const card = document.createElement("div");
-    card.className = "block-card";
-    card.innerHTML = `<div class="block-card-name">${b.pinned ? "📌 " : ""}${escHtml(b.name)}</div><div class="block-card-count">${(b.entries||[]).length} nota${(b.entries||[]).length !== 1 ? "s" : ""}</div>`;
-    card.onclick = () => { state.activeId = b.id; render(); };
+  const ti=document.getElementById("home-title");
+  ti.onblur=async()=>{state.title=ti.value.trim()||state.title;await setDoc(metaRef,{title:state.title});renderSidebar();};
+  ti.onkeydown=e=>{if(e.key==="Enter")ti.blur();};
+  const grid=document.getElementById("block-grid");
+  sorted().forEach(b=>{
+    const card=document.createElement("div");
+    card.className="block-card";
+    card.innerHTML=`<div class="block-card-name">${b.pinned?"📌 ":""}${escHtml(b.name)}</div><div class="block-card-count">${(b.entries||[]).length} nota${(b.entries||[]).length!==1?"s":""}</div>`;
+    card.onclick=()=>{state.activeId=b.id;render();};
     grid.appendChild(card);
   });
-  const addCard = document.createElement("div");
-  addCard.className = "block-card-add";
-  addCard.textContent = "+ Novo bloco de notas";
-  addCard.onclick = addBlock;
-  grid.appendChild(addCard);
+  const add=document.createElement("div");
+  add.className="block-card-add";add.textContent="+ Novo bloco de notas";add.onclick=addBlock;
+  grid.appendChild(add);
 }
 
-function renderChat(c, b) {
-  const chat = document.createElement("div");
-  chat.id = "chat";
-  if (!(b.entries||[]).length) {
-    chat.innerHTML = `<div id="chat-empty">Bloco vazio.<br>Escreva sua primeira anotação abaixo.</div>`;
-  } else {
-    b.entries.forEach(e => renderEntry(chat, b, e));
-  }
-  const anchor = document.createElement("div");
-  chat.appendChild(anchor);
-  c.appendChild(chat);
-  anchor.scrollIntoView();
+function renderChat(c,b){
+  const chat=document.createElement("div");chat.id="chat";
+  if(!(b.entries||[]).length){chat.innerHTML=`<div id="chat-empty">Bloco vazio.<br>Escreva sua primeira anotação abaixo.</div>`;}
+  else b.entries.forEach(e=>renderEntry(chat,b,e));
+  const anchor=document.createElement("div");
+  chat.appendChild(anchor);c.appendChild(chat);anchor.scrollIntoView();
 
-  const ia = document.createElement("div");
-  ia.id = "input-area";
-  ia.innerHTML = `<textarea id="note-input" rows="2" placeholder="Escreva sua anotação... (Enter para salvar, Shift+Enter para nova linha)"></textarea><button id="send-btn" onclick="sendNote()">↑</button>`;
+  const ia=document.createElement("div");ia.id="input-area";
+  ia.innerHTML=`
+    <div id="input-col">
+      <div class="fmt-toolbar">
+        <button class="fmt-btn" onmousedown="event.preventDefault();fmtWrap('b')" title="Negrito Ctrl+B"><b>N</b></button>
+        <button class="fmt-btn" onmousedown="event.preventDefault();fmtWrap('i')" title="Itálico Ctrl+I"><i>I</i></button>
+        <button class="fmt-btn" onmousedown="event.preventDefault();fmtWrap('u')" title="Sublinhado Ctrl+U"><u>S</u></button>
+      </div>
+      <textarea id="note-input" rows="2" placeholder="Escreva sua anotação... (Enter para salvar, Shift+Enter para nova linha)"></textarea>
+    </div>
+    <button id="send-btn" onclick="sendNote()">↑</button>`;
   c.appendChild(ia);
-  const inp = document.getElementById("note-input");
-  inp.onkeydown = ev => { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); sendNote(); } };
-  setTimeout(() => { const inp = document.getElementById("note-input"); if (inp) { inp.focus(); inp.click(); } }, 150);
+
+  const inp=document.getElementById("note-input");
+  inp.onkeydown=ev=>{
+    if(ev.key==="Enter"&&!ev.shiftKey){ev.preventDefault();sendNote();return;}
+    if((ev.ctrlKey||ev.metaKey)&&ev.key==="b"){ev.preventDefault();fmtWrap("b");return;}
+    if((ev.ctrlKey||ev.metaKey)&&ev.key==="i"){ev.preventDefault();fmtWrap("i");return;}
+    if((ev.ctrlKey||ev.metaKey)&&ev.key==="u"){ev.preventDefault();fmtWrap("u");return;}
+  };
+  inp.oninput=()=>autoReplace(inp);
+  setTimeout(()=>{if(inp){inp.focus();inp.click();}},150);
 }
 
-function renderEntry(chat, b, e) {
-  const wrap = document.createElement("div");
-  wrap.className = "entry"; wrap.id = "entry-" + e.id;
-  wrap.innerHTML = `
+function renderEntry(chat,b,e){
+  const wrap=document.createElement("div");
+  wrap.className="entry";wrap.id="entry-"+e.id;
+  wrap.innerHTML=`
     <div class="bubble">
-      <div>${escHtml(e.text)}</div>
+      <div>${renderFmt(e.text||"")}</div>
       <div class="bubble-actions">
-        <button class="bubble-btn" onclick="startEditEntry('${b.id}','${e.id}')">✏️</button>
-        <button class="bubble-btn" onclick="deleteEntry('${b.id}','${e.id}')">🗑️</button>
+        <button class="bubble-btn" onclick="startEdit('${b.id}','${e.id}')">✏️</button>
+        <button class="bubble-btn" onclick="delEntry('${b.id}','${e.id}')">🗑️</button>
       </div>
     </div>
-    <div class="entry-ts">${e.ts || ""}${e.edited ? " · editado" : ""}</div>`;
+    <div class="entry-ts">${e.ts||""}${e.edited?" · editado":""}</div>`;
   chat.appendChild(wrap);
 }
 
-window.sendNote = async function() {
-  const inp = document.getElementById("note-input");
-  const txt = inp?.value?.trim();
-  if (!txt || !state.activeId) return;
-  inp.value = "";
-  setStatus("Salvando...");
-  await addDoc(collection(db, "blocks", state.activeId, "entries"), {
-    text: txt,
-    ts: new Date().toLocaleString("pt-BR"),
-    edited: false,
-    createdAt: Date.now()
-  });
-  setStatus("Sincronizado ✓");
-  inp.focus();
+// ── Note actions ──
+window.sendNote=async function(){
+  const inp=document.getElementById("note-input");
+  const txt=inp?.value?.trim();
+  if(!txt||!state.activeId)return;
+  inp.value="";setStatus("Salvando...");
+  await addDoc(collection(db,"blocks",state.activeId,"entries"),{text:txt,ts:new Date().toLocaleString("pt-BR"),edited:false,createdAt:Date.now()});
+  setStatus("Sincronizado ✓");inp.focus();
 };
 
-window.deleteEntry = async function(blockId, entryId) {
-  await deleteDoc(doc(db, "blocks", blockId, "entries", entryId));
+window.delEntry=async function(blockId,entryId){
+  await deleteDoc(doc(db,"blocks",blockId,"entries",entryId));
 };
 
-window.startEditEntry = function(blockId, entryId) {
-  const b = state.blocks.find(x => x.id === blockId);
-  const e = b?.entries?.find(x => x.id === entryId);
-  const wrap = document.getElementById("entry-" + entryId);
-  if (!e || !wrap) return;
-  wrap.innerHTML = `
+window.startEdit=function(blockId,entryId){
+  const b=state.blocks.find(x=>x.id===blockId);
+  const e=b?.entries?.find(x=>x.id===entryId);
+  const wrap=document.getElementById("entry-"+entryId);
+  if(!e||!wrap)return;
+  wrap.innerHTML=`
     <div class="edit-box">
-      <textarea class="edit-textarea" rows="3">${escHtml(e.text)}</textarea>
+      <textarea class="edit-textarea" rows="3">${escHtml(e.text||"")}</textarea>
       <div class="edit-actions">
         <button class="btn-cancel" onclick="cancelEdit('${blockId}','${entryId}')">Cancelar</button>
-        <button class="btn-save"   onclick="saveEdit('${blockId}','${entryId}')">Salvar</button>
+        <button class="btn-save" onclick="saveEdit('${blockId}','${entryId}')">Salvar</button>
       </div>
     </div>
-    <div class="entry-ts">${e.ts || ""}${e.edited ? " · editado" : ""}</div>`;
+    <div class="entry-ts">${e.ts||""}${e.edited?" · editado":""}</div>`;
   wrap.querySelector("textarea").focus();
 };
 
-window.cancelEdit = function(blockId, entryId) {
-  const b = state.blocks.find(x => x.id === blockId);
-  const e = b?.entries?.find(x => x.id === entryId);
-  const wrap = document.getElementById("entry-" + entryId);
-  if (!e || !wrap) return;
-  wrap.innerHTML = `
+window.cancelEdit=function(blockId,entryId){
+  const b=state.blocks.find(x=>x.id===blockId);
+  const e=b?.entries?.find(x=>x.id===entryId);
+  const wrap=document.getElementById("entry-"+entryId);
+  if(!e||!wrap)return;
+  wrap.innerHTML=`
     <div class="bubble">
-      <div>${escHtml(e.text)}</div>
+      <div>${renderFmt(e.text||"")}</div>
       <div class="bubble-actions">
-        <button class="bubble-btn" onclick="startEditEntry('${b.id}','${e.id}')">✏️</button>
-        <button class="bubble-btn" onclick="deleteEntry('${b.id}','${e.id}')">🗑️</button>
+        <button class="bubble-btn" onclick="startEdit('${b.id}','${e.id}')">✏️</button>
+        <button class="bubble-btn" onclick="delEntry('${b.id}','${e.id}')">🗑️</button>
       </div>
     </div>
-    <div class="entry-ts">${e.ts || ""}${e.edited ? " · editado" : ""}</div>`;
+    <div class="entry-ts">${e.ts||""}${e.edited?" · editado":""}</div>`;
 };
 
-window.saveEdit = async function(blockId, entryId) {
-  const wrap = document.getElementById("entry-" + entryId);
-  const txt  = wrap?.querySelector("textarea")?.value?.trim();
-  if (!txt) return;
+window.saveEdit=async function(blockId,entryId){
+  const wrap=document.getElementById("entry-"+entryId);
+  const txt=wrap?.querySelector("textarea")?.value?.trim();
+  if(!txt)return;
   setStatus("Salvando...");
-  await updateDoc(doc(db, "blocks", blockId, "entries", entryId), { text: txt, edited: true });
+  await updateDoc(doc(db,"blocks",blockId,"entries",entryId),{text:txt,edited:true});
   setStatus("Sincronizado ✓");
 };
 
-// ── Utils ──
-function escHtml(s) {
-  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+// ── Formatting ──
+window.fmtWrap=function(tag){
+  const inp=document.getElementById("note-input");
+  if(!inp)return;
+  const s=inp.selectionStart,e=inp.selectionEnd;
+  const sel=inp.value.slice(s,e);
+  inp.setRangeText(`<${tag}>${sel}</${tag}>`,s,e,"end");
+  inp.focus();
+};
+
+function autoReplace(inp){
+  const val=inp.value,pos=inp.selectionStart;
+  const before=val.slice(0,pos);
+  // bullet: "- " at line start
+  const bm=before.match(/(^|\n)(- )$/);
+  if(bm){
+    const start=before.lastIndexOf("- ");
+    inp.value=val.slice(0,start)+"• "+val.slice(pos);
+    inp.selectionStart=inp.selectionEnd=start+2;return;
+  }
+  // arrows — order matters: longest first
+  const arrows=[
+    [/<->/,"↔"],[/<=>/,"⇔"],[/-->/,"➞"],[/<--/,"←"],[/=>/,"➾"],[/->/,"➞"]
+  ];
+  for(const[rx,sym]of arrows){
+    const m=before.match(new RegExp(rx.source+"$"));
+    if(m){
+      const start=pos-m[0].length;
+      inp.value=val.slice(0,start)+sym+val.slice(pos);
+      inp.selectionStart=inp.selectionEnd=start+sym.length;return;
+    }
+  }
 }
-function hilite(text, q) {
-  if (!q) return escHtml(text);
-  const idx = text.toLowerCase().indexOf(q.toLowerCase());
-  if (idx === -1) return escHtml(text);
-  return escHtml(text.slice(0, idx)) + `<mark>${escHtml(text.slice(idx, idx + q.length))}</mark>` + escHtml(text.slice(idx + q.length));
+
+function renderFmt(raw){
+  const parts=raw.split(/(<\/?(?:b|i|u)>)/g);
+  return parts.map(p=>/^<\/?(?:b|i|u)>$/.test(p)?p:escHtml(p)).join("").replace(/\n/g,"<br>");
+}
+
+// ── Utils ──
+function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function hilite(text,q){
+  if(!q)return escHtml(text);
+  const idx=text.toLowerCase().indexOf(q.toLowerCase());
+  if(idx===-1)return escHtml(text);
+  return escHtml(text.slice(0,idx))+`<mark>${escHtml(text.slice(idx,idx+q.length))}</mark>`+escHtml(text.slice(idx+q.length));
 }
 
 bootstrap();

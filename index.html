@@ -61,6 +61,8 @@
     #main{flex:1;display:flex;flex-direction:column;min-width:0}
     #topbar{display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--border);background:var(--sidebar);flex-shrink:0}
     #toggle-btn{background:none;border:none;cursor:pointer;color:var(--text2);font-size:17px;padding:3px 5px;border-radius:6px}
+    #export-block-btn{background:none;border:1px solid rgba(255,255,255,.15);border-radius:7px;color:var(--text2);cursor:pointer;font-size:11px;padding:4px 10px;font-family:var(--font);white-space:nowrap;transition:border-color .15s,color .15s;flex-shrink:0}
+    #export-block-btn:hover{border-color:rgba(255,255,255,.4);color:var(--text)}
     #topbar-title{font-size:15px;font-weight:500;flex:1;cursor:default}
     #topbar-hint{font-size:11px;font-weight:400;color:var(--text3);margin-left:10px}
     #sync-status{font-size:11px;color:var(--text3);padding:5px 18px;text-align:right;flex-shrink:0;background:var(--sidebar);border-bottom:1px solid var(--border)}
@@ -119,6 +121,10 @@
     .tag-chip-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;line-height:1;padding:0}
     .tag-chip-del:hover{color:var(--text)}
     #tag-text{background:transparent;border:none;outline:none;color:var(--text);font-size:12px;font-family:var(--font);min-width:80px;flex:1}
+    #tag-suggestions{position:absolute;bottom:calc(100% + 4px);left:0;background:#0d4e47;border:1px solid rgba(255,255,255,.2);border-radius:8px;overflow:hidden;z-index:100;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+    .tag-sug-item{padding:7px 12px;font-size:12px;cursor:pointer;color:var(--text2);transition:background .1s}
+    .tag-sug-item:hover,.tag-sug-item.selected{background:rgba(255,255,255,.12);color:var(--text)}
+    .tag-input-wrap{position:relative}
     /* tag filter overlay */
     #tag-view{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
     /* ── Export btn ── */
@@ -146,12 +152,13 @@
     <div id="home-btn" onclick="goHome()">🏠 <span id="home-label">Início</span></div>
     <div id="block-list"></div>
     <button id="add-block-btn" onclick="addBlock()">+ Novo bloco de notas</button>
-    <button id="export-btn" onclick="exportTxt()">↓ Exportar TXT</button>
+    <button id="export-btn" onclick="exportTxt()">↓ Exportar TXT completo</button>
   </div>
   <div id="main">
     <div id="topbar">
       <button id="toggle-btn" onclick="toggleSidebar()">☰</button>
       <div id="topbar-title">Início<span id="topbar-hint"></span></div>
+      <button id="export-block-btn" style="display:none" onclick="exportBlockTxt()">↓ Exportar TXT desse bloco</button>
     </div>
     <div id="sync-status">Conectando...</div>
     <div id="content"></div>
@@ -334,16 +341,19 @@ function renderTopbar(){
   const b=state.blocks.find(x=>x.id===state.activeId);
   const te=document.getElementById("topbar-title");
   const hint=document.getElementById("topbar-hint");
+  const exportBlockBtn=document.getElementById("export-block-btn");
   if(b){
     te.textContent=(b.pinned?"📌 ":"")+b.name;
     hint.textContent=" · duplo clique para renomear";
     te.appendChild(hint);
     te.ondblclick=()=>renameBlock(b.id,{stopPropagation:()=>{}});
+    if(exportBlockBtn)exportBlockBtn.style.display="block";
   }else if(state.activeId==="__tag__"){
     te.textContent=`#${activeTagFilter}`;
     hint.textContent=" · clique em Início para voltar";
     te.appendChild(hint);
     te.ondblclick=null;
+    if(exportBlockBtn)exportBlockBtn.style.display="none";
   }else{
     te.ondblclick=()=>{
       const inp=document.createElement("input");
@@ -362,6 +372,7 @@ function renderTopbar(){
     te.textContent="Início";
     hint.textContent=" · duplo clique para editar";
     te.appendChild(hint);
+    if(exportBlockBtn)exportBlockBtn.style.display="none";
   }
   document.getElementById("home-btn").classList.toggle("active",!state.activeId);
 }
@@ -591,18 +602,74 @@ window.removeTag = function(i) {
   renderTagChips();
 };
 
-function initTagInput() {
-  const ti = document.getElementById("tag-text");
-  if (!ti) return;
-  ti.onkeydown = ev => {
-    if (ev.key === "Enter" || ev.key === ",") {
+function getAllTags(){
+  const set=new Set();
+  state.blocks.forEach(b=>(b.entries||[]).forEach(e=>(e.tags||[]).forEach(t=>set.add(t))));
+  return [...set].sort();
+}
+
+let sugIndex=-1;
+
+function showSuggestions(val){
+  let box=document.getElementById("tag-suggestions");
+  const q=val.replace(/^#/,"").toLowerCase().trim();
+  if(!q){hideSuggestions();return;}
+  const all=getAllTags().filter(t=>t.startsWith(q)&&!pendingTags.includes(t));
+  if(!all.length){hideSuggestions();return;}
+  if(!box){
+    box=document.createElement("div");
+    box.id="tag-suggestions";
+    document.getElementById("tag-input-wrap").appendChild(box);
+  }
+  sugIndex=-1;
+  box.innerHTML=all.map((t,i)=>`<div class="tag-sug-item" data-tag="${escHtml(t)}" data-i="${i}">#${escHtml(t)}</div>`).join("");
+  box.querySelectorAll(".tag-sug-item").forEach(el=>{
+    el.onmousedown=ev=>{ev.preventDefault();pickSuggestion(el.dataset.tag);};
+  });
+}
+
+function hideSuggestions(){
+  const box=document.getElementById("tag-suggestions");
+  if(box)box.remove();
+  sugIndex=-1;
+}
+
+function pickSuggestion(tag){
+  if(tag&&!pendingTags.includes(tag))pendingTags.push(tag);
+  const ti=document.getElementById("tag-text");
+  if(ti)ti.value="";
+  renderTagChips();
+  hideSuggestions();
+}
+
+function initTagInput(){
+  const ti=document.getElementById("tag-text");
+  if(!ti)return;
+  ti.oninput=()=>showSuggestions(ti.value);
+  ti.onkeydown=ev=>{
+    const box=document.getElementById("tag-suggestions");
+    const items=box?box.querySelectorAll(".tag-sug-item"):[];
+    if(ev.key==="ArrowDown"){
       ev.preventDefault();
-      const v = ti.value.trim().replace(/^#/, "").toLowerCase();
-      if (v && !pendingTags.includes(v)) { pendingTags.push(v); renderTagChips(); }
-      ti.value = "";
+      sugIndex=Math.min(sugIndex+1,items.length-1);
+      items.forEach((el,i)=>el.classList.toggle("selected",i===sugIndex));return;
     }
+    if(ev.key==="ArrowUp"){
+      ev.preventDefault();
+      sugIndex=Math.max(sugIndex-1,0);
+      items.forEach((el,i)=>el.classList.toggle("selected",i===sugIndex));return;
+    }
+    if(ev.key==="Enter"||ev.key===","){
+      ev.preventDefault();ev.stopPropagation();
+      if(sugIndex>=0&&items[sugIndex]){pickSuggestion(items[sugIndex].dataset.tag);return;}
+      const v=ti.value.trim().replace(/^#/,"").toLowerCase();
+      if(v&&!pendingTags.includes(v)){pendingTags.push(v);renderTagChips();}
+      ti.value="";hideSuggestions();return;
+    }
+    if(ev.key==="Escape"){hideSuggestions();return;}
     ev.stopPropagation();
   };
+  ti.onblur=()=>setTimeout(hideSuggestions,150);
 }
 
 // ── Tag filter view ──
@@ -639,7 +706,35 @@ function renderTagView(c) {
   c.appendChild(chat);
 }
 
-// ── Export TXT ──
+// ── Export TXT (bloco atual) ──
+window.exportBlockTxt=function(){
+  const b=state.blocks.find(x=>x.id===state.activeId);
+  if(!b)return;
+  const lines=[];
+  const now=new Date().toLocaleString("pt-BR");
+  lines.push(`SEGUNDO CÉREBRO — ${state.title}`);
+  lines.push(`Bloco: ${b.name}`);
+  lines.push(`Exportado em: ${now}`);
+  lines.push("=".repeat(50));
+  if(!(b.entries||[]).length){
+    lines.push("(sem notas)");
+  }else{
+    b.entries.forEach(e=>{
+      const tags=(e.tags||[]).map(t=>`#${t}`).join(" ");
+      const txt=(e.text||"").replace(/<\/?[biuBIU]>/g,"");
+      lines.push(`\n[${e.ts||""}]${tags?" "+tags:""}`);
+      lines.push(txt);
+    });
+  }
+  const blob=new Blob([lines.join("\n")],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  const slug=b.name.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"");
+  a.download=`${slug}-${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+};
+
+// ── Export TXT (completo) ──
 window.exportTxt = function() {
   const lines = [];
   const now = new Date().toLocaleString("pt-BR");

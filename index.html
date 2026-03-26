@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Meu Espaço</title>
+  <title>Matheus</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230A413B'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-family='sans-serif' font-size='20' font-weight='700' fill='white'>M</text></svg>"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -110,7 +111,19 @@
     .result-text{font-size:13px;line-height:1.5;word-break:break-word}
     mark{background:rgba(255,255,255,.25);color:#fff;border-radius:2px;padding:0 2px}
 
-    @media(max-width:600px){
+    /* ── Tags ── */
+    .tag{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:1px 9px;font-size:11px;color:var(--text2);cursor:pointer;transition:background .15s,color .15s;margin:2px 2px 0 0}
+    .tag:hover,.tag.active{background:rgba(255,255,255,.25);color:var(--text)}
+    .tag-input-wrap{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px 10px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--border);margin-top:5px}
+    .tag-chip{background:var(--surface2);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:2px 8px;font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px}
+    .tag-chip-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;line-height:1;padding:0}
+    .tag-chip-del:hover{color:var(--text)}
+    #tag-text{background:transparent;border:none;outline:none;color:var(--text);font-size:12px;font-family:var(--font);min-width:80px;flex:1}
+    /* tag filter overlay */
+    #tag-view{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+    /* ── Export btn ── */
+    #export-btn{margin:0 10px 10px;padding:8px;font-size:13px;background:none;border:1px solid rgba(255,255,255,.15);border-radius:8px;cursor:pointer;color:var(--text2);font-family:var(--font);width:calc(100% - 20px);transition:border-color .15s,color .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+    #export-btn:hover{border-color:rgba(255,255,255,.4);color:var(--text)}
       #sidebar{width:200px}
       #sidebar.mini{width:40px}
       #chat{padding:16px}
@@ -133,6 +146,7 @@
     <div id="home-btn" onclick="goHome()">🏠 <span id="home-label">Início</span></div>
     <div id="block-list"></div>
     <button id="add-block-btn" onclick="addBlock()">+ Novo bloco de notas</button>
+    <button id="export-btn" onclick="exportTxt()">↓ Exportar TXT</button>
   </div>
   <div id="main">
     <div id="topbar">
@@ -325,6 +339,11 @@ function renderTopbar(){
     hint.textContent=" · duplo clique para renomear";
     te.appendChild(hint);
     te.ondblclick=()=>renameBlock(b.id,{stopPropagation:()=>{}});
+  }else if(state.activeId==="__tag__"){
+    te.textContent=`#${activeTagFilter}`;
+    hint.textContent=" · clique em Início para voltar";
+    te.appendChild(hint);
+    te.ondblclick=null;
   }else{
     te.ondblclick=()=>{
       const inp=document.createElement("input");
@@ -355,6 +374,7 @@ function renderContent(){
   c.innerHTML="";
   c.style.cssText="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden";
   if(!state.activeId){renderHome(c);return;}
+  if(state.activeId==="__tag__"){renderTagView(c);return;}
   const b=state.blocks.find(x=>x.id===state.activeId);
   if(!b){state.activeId=null;renderHome(c);return;}
   renderChat(c,b);
@@ -401,6 +421,10 @@ function renderChat(c,b){
         <button class="fmt-btn" onmousedown="event.preventDefault();fmtWrap('u')" title="Sublinhado Ctrl+U"><u>S</u></button>
       </div>
       <textarea id="note-input" rows="2" placeholder="Escreva sua anotação... (Enter para salvar, Shift+Enter para nova linha)"></textarea>
+      <div class="tag-input-wrap" id="tag-input-wrap">
+        <span id="tag-chips"></span>
+        <input id="tag-text" placeholder="+ adicionar tag (Enter)" maxlength="30"/>
+      </div>
     </div>
     <button id="send-btn" onclick="sendNote()">↑</button>`;
   c.appendChild(ia);
@@ -413,21 +437,27 @@ function renderChat(c,b){
     if((ev.ctrlKey||ev.metaKey)&&ev.key==="u"){ev.preventDefault();fmtWrap("u");return;}
   };
   inp.oninput=()=>autoReplace(inp);
+  pendingTags=[];
+  initTagInput();
   setTimeout(()=>{if(inp){inp.focus();inp.click();}},150);
 }
 
-function renderEntry(chat,b,e){
+function renderEntry(chat,b,e,readOnly=false){
+  const tagsHtml = (e.tags||[]).map(t=>
+    `<span class="tag" onclick="openTagFilter('${escHtml(t)}')">#${escHtml(t)}</span>`
+  ).join("");
   const wrap=document.createElement("div");
   wrap.className="entry";wrap.id="entry-"+e.id;
   wrap.innerHTML=`
     <div class="bubble">
       <div>${renderFmt(e.text||"")}</div>
-      <div class="bubble-actions">
+      ${tagsHtml?`<div style="margin-top:6px">${tagsHtml}</div>`:""}
+      ${!readOnly?`<div class="bubble-actions">
         <button class="bubble-btn" onclick="startEdit('${b.id}','${e.id}')">✏️</button>
         <button class="bubble-btn" onclick="delEntry('${b.id}','${e.id}')">🗑️</button>
-      </div>
+      </div>`:""}
     </div>
-    <div class="entry-ts">${e.ts||""}${e.edited?" · editado":""}</div>`;
+    <div class="entry-ts">${e.ts||""}${e.edited?" · editado":""}${readOnly?` · <span style="color:var(--text3)">${escHtml(b.name)}</span>`:""}</div>`;
   chat.appendChild(wrap);
 }
 
@@ -435,9 +465,19 @@ function renderEntry(chat,b,e){
 window.sendNote=async function(){
   const inp=document.getElementById("note-input");
   const txt=inp?.value?.trim();
-  if(!txt||!state.activeId)return;
+  if(!txt||!state.activeId||state.activeId==="__tag__")return;
+  // collect any uncommitted tag in input
+  const tagTi = document.getElementById("tag-text");
+  if (tagTi?.value?.trim()) {
+    const v = tagTi.value.trim().replace(/^#/,"").toLowerCase();
+    if (v && !pendingTags.includes(v)) pendingTags.push(v);
+    tagTi.value = "";
+  }
+  const tags = [...pendingTags];
+  pendingTags = [];
+  renderTagChips();
   inp.value="";setStatus("Salvando...");
-  await addDoc(collection(db,"blocks",state.activeId,"entries"),{text:txt,ts:new Date().toLocaleString("pt-BR"),edited:false,createdAt:Date.now()});
+  await addDoc(collection(db,"blocks",state.activeId,"entries"),{text:txt,ts:new Date().toLocaleString("pt-BR"),edited:false,createdAt:Date.now(),tags});
   setStatus("Sincronizado ✓");inp.focus();
 };
 
@@ -534,6 +574,99 @@ function hilite(text,q){
   if(idx===-1)return escHtml(text);
   return escHtml(text.slice(0,idx))+`<mark>${escHtml(text.slice(idx,idx+q.length))}</mark>`+escHtml(text.slice(idx+q.length));
 }
+
+// ── Tag input state ──
+let pendingTags = [];
+
+function renderTagChips() {
+  const wrap = document.getElementById("tag-chips");
+  if (!wrap) return;
+  wrap.innerHTML = pendingTags.map((t,i) =>
+    `<span class="tag-chip">#${escHtml(t)}<button class="tag-chip-del" onmousedown="event.preventDefault();removeTag(${i})">×</button></span>`
+  ).join("");
+}
+
+window.removeTag = function(i) {
+  pendingTags.splice(i, 1);
+  renderTagChips();
+};
+
+function initTagInput() {
+  const ti = document.getElementById("tag-text");
+  if (!ti) return;
+  ti.onkeydown = ev => {
+    if (ev.key === "Enter" || ev.key === ",") {
+      ev.preventDefault();
+      const v = ti.value.trim().replace(/^#/, "").toLowerCase();
+      if (v && !pendingTags.includes(v)) { pendingTags.push(v); renderTagChips(); }
+      ti.value = "";
+    }
+    ev.stopPropagation();
+  };
+}
+
+// ── Tag filter view ──
+let activeTagFilter = null;
+
+window.openTagFilter = function(tag) {
+  activeTagFilter = tag;
+  state.activeId = "__tag__";
+  renderTopbar();
+  renderContent();
+};
+
+function renderTagView(c) {
+  const all = state.blocks.flatMap(b =>
+    (b.entries || []).filter(e => (e.tags || []).includes(activeTagFilter))
+      .map(e => ({ ...e, blockName: b.name, blockId: b.id }))
+  ).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+  const header = document.createElement("div");
+  header.style.cssText = "padding:16px 28px 8px;font-size:13px;color:var(--text2);flex-shrink:0";
+  header.innerHTML = `<span class="tag active">#${escHtml(activeTagFilter)}</span> <span style="margin-left:8px">${all.length} nota${all.length!==1?"s":""}</span>`;
+  c.appendChild(header);
+
+  const chat = document.createElement("div");
+  chat.id = "chat";
+  if (!all.length) {
+    chat.innerHTML = `<div id="chat-empty">Nenhuma nota com a tag <b>#${escHtml(activeTagFilter)}</b>.</div>`;
+  } else {
+    all.forEach(e => {
+      const b = state.blocks.find(x => x.id === e.blockId);
+      if (b) renderEntry(chat, b, e, true);
+    });
+  }
+  c.appendChild(chat);
+}
+
+// ── Export TXT ──
+window.exportTxt = function() {
+  const lines = [];
+  const now = new Date().toLocaleString("pt-BR");
+  lines.push(`SEGUNDO CÉREBRO — ${state.title}`);
+  lines.push(`Exportado em: ${now}`);
+  lines.push("=".repeat(50));
+  sorted().forEach(b => {
+    lines.push(`\n## ${b.name.toUpperCase()}`);
+    lines.push("-".repeat(30));
+    if (!(b.entries || []).length) {
+      lines.push("(sem notas)");
+    } else {
+      b.entries.forEach(e => {
+        const tags = (e.tags || []).map(t => `#${t}`).join(" ");
+        const txt = (e.text || "").replace(/<\/?[biuBIU]>/g, "");
+        lines.push(`[${e.ts || ""}]${tags ? " " + tags : ""}`);
+        lines.push(txt);
+        lines.push("");
+      });
+    }
+  });
+  const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `segundo-cerebro-${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+};
 
 bootstrap();
 </script>

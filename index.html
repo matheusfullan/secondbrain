@@ -87,7 +87,8 @@
     .fmt-btn,.img-upload-btn,.file-upload-btn{background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;font-size:12px;padding:2px 9px;font-family:var(--font);line-height:1.6}
     .fmt-btn:hover,.img-upload-btn:hover,.file-upload-btn:hover{background:rgba(255,255,255,.18);color:var(--text)}
     #img-input,#file-input{display:none}
-    #note-input{font-size:14px;padding:10px 15px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);outline:none;resize:none;line-height:1.6;font-family:var(--font);width:100%}
+    #note-input{font-size:14px;padding:10px 15px;border-radius:10px;border:1px solid var(--border);background:var(--input-bg);color:var(--text);outline:none;line-height:1.6;font-family:var(--font);width:100%;min-height:44px;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+    #note-input:empty::before{content:attr(data-placeholder);color:var(--text3);pointer-events:none}
     #send-btn{background:var(--accent);color:var(--acc-text);border:none;border-radius:10px;padding:0 18px;font-size:20px;cursor:pointer;flex-shrink:0;font-weight:700;height:44px}
     #send-btn:hover{background:#f0f0f0}
     .img-preview-wrap{display:flex;flex-wrap:wrap;gap:6px}
@@ -333,9 +334,9 @@ function renderChat(c,b){
   const ia=document.createElement("div");ia.id="input-area";
   ia.innerHTML=`<div id="input-col">
     <div class="fmt-toolbar">
-      <button class="fmt-btn" onmousedown="event.preventDefault();fmtWrap('b')"><b>N</b></button>
-      <button class="fmt-btn" onmousedown="event.preventDefault();fmtWrap('i')"><i>I</i></button>
-      <button class="fmt-btn" onmousedown="event.preventDefault();fmtWrap('u')"><u>S</u></button>
+      <button class="fmt-btn" onmousedown="event.preventDefault();document.execCommand('bold')"><b>N</b></button>
+      <button class="fmt-btn" onmousedown="event.preventDefault();document.execCommand('italic')"><i>I</i></button>
+      <button class="fmt-btn" onmousedown="event.preventDefault();document.execCommand('underline')"><u>S</u></button>
       <button class="img-upload-btn" onmousedown="event.preventDefault();document.getElementById('img-input').click()">🖼 Imagem</button>
       <input type="file" id="img-input" accept="image/*" multiple onchange="onImgSelect(this)"/>
       <button class="file-upload-btn" onmousedown="event.preventDefault();document.getElementById('file-input').click()">📎 Arquivo</button>
@@ -343,7 +344,7 @@ function renderChat(c,b){
     </div>
     <div class="img-preview-wrap" id="img-previews"></div>
     <div id="file-previews" style="display:flex;flex-direction:column;gap:4px;margin-top:2px"></div>
-    <textarea id="note-input" rows="2" placeholder="Escreva sua anotação... (Enter para salvar, Shift+Enter para nova linha)"></textarea>
+    <div id="note-input" contenteditable="true" data-placeholder="Escreva sua anotação... (Enter para salvar, Shift+Enter para nova linha)"></div>
     <div class="tag-input-wrap" id="tag-input-wrap"><span id="tag-chips"></span><input id="tag-text" placeholder="+ adicionar tag (Enter)" maxlength="30"/></div>
   </div>
   <button id="send-btn" onclick="sendNote()">↑</button>`;
@@ -351,16 +352,21 @@ function renderChat(c,b){
   const inp=document.getElementById("note-input");
   inp.onkeydown=ev=>{
     if(ev.key==="Enter"&&!ev.shiftKey){ev.preventDefault();sendNote();return;}
-    if((ev.ctrlKey||ev.metaKey)&&ev.key==="b"){ev.preventDefault();fmtWrap("b");return;}
-    if((ev.ctrlKey||ev.metaKey)&&ev.key==="i"){ev.preventDefault();fmtWrap("i");return;}
-    if((ev.ctrlKey||ev.metaKey)&&ev.key==="u"){ev.preventDefault();fmtWrap("u");return;}
+    if((ev.ctrlKey||ev.metaKey)&&ev.key==="b"){ev.preventDefault();document.execCommand("bold");return;}
+    if((ev.ctrlKey||ev.metaKey)&&ev.key==="i"){ev.preventDefault();document.execCommand("italic");return;}
+    if((ev.ctrlKey||ev.metaKey)&&ev.key==="u"){ev.preventDefault();document.execCommand("underline");return;}
   };
-  inp.oninput=()=>autoReplace(inp);
+  inp.oninput=()=>autoReplaceDiv(inp);
   inp.onpaste=ev=>{
-    const imgs=[...(ev.clipboardData?.items||[])].filter(it=>it.type.startsWith("image/"));
-    if(!imgs.length)return;
     ev.preventDefault();
-    imgs.forEach(it=>{const f=it.getAsFile();if(!f)return;if(f.size>2097152){alert("Imagem maior que 2MB.");return;}const r=new FileReader();r.onload=e=>{pendingImgs.push({name:`colada-${Date.now()}.${f.type.split("/")[1]}`,base64:e.target.result,mime:f.type});renderImgPreviews();};r.readAsDataURL(f);});
+    const imgs=[...(ev.clipboardData?.items||[])].filter(it=>it.type.startsWith("image/"));
+    if(imgs.length){
+      imgs.forEach(it=>{const f=it.getAsFile();if(!f)return;if(f.size>2097152){alert("Imagem maior que 2MB.");return;}const r=new FileReader();r.onload=e=>{pendingImgs.push({name:`colada-${Date.now()}.${f.type.split("/")[1]}`,base64:e.target.result,mime:f.type});renderImgPreviews();};r.readAsDataURL(f);});
+    } else {
+      // paste as plain text
+      const text=ev.clipboardData.getData("text/plain");
+      document.execCommand("insertText",false,text);
+    }
   };
   pendingTags=[];pendingImgs=[];pendingFiles=[];
   renderTagChips();renderImgPreviews();renderFilePreviews();
@@ -378,15 +384,23 @@ function renderEntry(chat,b,e,readOnly=false){
 }
 
 window.sendNote=async function(){
-  const inp=document.getElementById("note-input");const txt=inp?.value?.trim();
-  if((!txt&&!pendingImgs.length&&!pendingFiles.length)||!state.activeId||state.activeId==="__tag__")return;
+  const inp=document.getElementById("note-input");
+  if(!inp||!state.activeId||state.activeId==="__tag__")return;
+  // Extract clean HTML, convert to our storage format
+  const raw=inp.innerHTML.trim();
+  const txt=raw.replace(/<div>/gi,"\n").replace(/<\/div>/gi,"").replace(/<br\s*\/?>/gi,"\n").replace(/<b>(.*?)<\/b>/gi,"<b>$1</b>").replace(/<strong>(.*?)<\/strong>/gi,"<b>$1</b>").replace(/<i>(.*?)<\/i>/gi,"<i>$1</i>").replace(/<em>(.*?)<\/em>/gi,"<i>$1</i>").replace(/<u>(.*?)<\/u>/gi,"<u>$1</u>").replace(/<[^>]+>/g,"").trim();
+  // Get plain text to check if empty
+  const plain=inp.innerText.trim();
+  if(!plain&&!pendingImgs.length&&!pendingFiles.length)return;
+  // Rebuild clean html preserving b/i/u
+  const clean=inp.innerHTML.replace(/<div>/gi,"<br>").replace(/<\/div>/gi,"").replace(/<strong>/gi,"<b>").replace(/<\/strong>/gi,"</b>").replace(/<em>/gi,"<i>").replace(/<\/em>/gi,"</i>").replace(/<span[^>]*>/gi,"").replace(/<\/span>/gi,"").replace(/<[^biuBIU\/][^>]*>/g,"").replace(/<\/[^biuBIU][^>]*>/g,"");
   const tagTi=document.getElementById("tag-text");
   if(tagTi?.value?.trim()){const v=tagTi.value.trim().replace(/^#/,"").toLowerCase();if(v&&!pendingTags.includes(v))pendingTags.push(v);tagTi.value="";}
   const tags=[...pendingTags],imgs=[...pendingImgs],files=[...pendingFiles];
   pendingTags=[];pendingImgs=[];pendingFiles=[];
   renderTagChips();renderImgPreviews();renderFilePreviews();
-  inp.value="";setStatus("Salvando...");
-  await addDoc(collection(db,"blocks",state.activeId,"entries"),{text:txt||"",ts:new Date().toLocaleString("pt-BR"),edited:false,createdAt:Date.now(),tags,images:imgs.map(i=>({name:i.name,base64:i.base64,mime:i.mime})),files:files.map(f=>({name:f.name,base64:f.base64,mime:f.mime,size:f.size}))});
+  inp.innerHTML="";setStatus("Salvando...");
+  await addDoc(collection(db,"blocks",state.activeId,"entries"),{text:clean||"",ts:new Date().toLocaleString("pt-BR"),edited:false,createdAt:Date.now(),tags,images:imgs.map(i=>({name:i.name,base64:i.base64,mime:i.mime})),files:files.map(f=>({name:f.name,base64:f.base64,mime:f.mime,size:f.size}))});
   setStatus("Sincronizado ✓");inp.focus();
 };
 window.delEntry=async function(bid,eid){await deleteDoc(doc(db,"blocks",bid,"entries",eid));};
@@ -406,13 +420,27 @@ window.saveEdit=async function(bid,eid){
   if(!txt)return;setStatus("Salvando...");
   await updateDoc(doc(db,"blocks",bid,"entries",eid),{text:txt,edited:true});setStatus("Sincronizado ✓");
 };
-window.fmtWrap=function(tag){const inp=document.getElementById("note-input");if(!inp)return;const s=inp.selectionStart,e=inp.selectionEnd;inp.setRangeText(`<${tag}>${inp.value.slice(s,e)}</${tag}>`,s,e,"end");inp.focus();};
-function autoReplace(inp){
-  const val=inp.value,pos=inp.selectionStart,before=val.slice(0,pos);
+window.fmtWrap=function(tag){document.execCommand(tag==="b"?"bold":tag==="i"?"italic":"underline");};
+function autoReplaceDiv(el){
+  const sel=window.getSelection();if(!sel.rangeCount)return;
+  const range=sel.getRangeAt(0);
+  const node=range.startContainer;if(node.nodeType!==3)return;
+  const txt=node.textContent;const pos=range.startOffset;const before=txt.slice(0,pos);
+  // bullet
   const bm=before.match(/(^|\n)(- )$/);
-  if(bm){const st=before.lastIndexOf("- ");inp.value=val.slice(0,st)+"• "+val.slice(pos);inp.selectionStart=inp.selectionEnd=st+2;return;}
+  if(bm){
+    const st=before.lastIndexOf("- ");
+    node.textContent=txt.slice(0,st)+"• "+txt.slice(pos);
+    const r=document.createRange();r.setStart(node,st+2);r.collapse(true);sel.removeAllRanges();sel.addRange(r);return;
+  }
+  // arrows
   for(const[rx,sym]of[[/<->/,"↔"],[/<=>/,"⇔"],[/-->/,"➞"],[/<--/,"←"],[/=>/,"➾"],[/->/,"➞"]]){
-    const m=before.match(new RegExp(rx.source+"$"));if(m){const st=pos-m[0].length;inp.value=val.slice(0,st)+sym+val.slice(pos);inp.selectionStart=inp.selectionEnd=st+sym.length;return;}
+    const m=before.match(new RegExp(rx.source+"$"));
+    if(m){
+      const st=pos-m[0].length;
+      node.textContent=txt.slice(0,st)+sym+txt.slice(pos);
+      const r=document.createRange();r.setStart(node,st+sym.length);r.collapse(true);sel.removeAllRanges();sel.addRange(r);return;
+    }
   }
 }
 

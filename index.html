@@ -258,7 +258,16 @@ window.renameBlock=function(id,e){
   inp.onblur=done;inp.onkeydown=ev=>{if(ev.key==="Enter")inp.blur();ev.stopPropagation();};
 };
 window.togglePin=async function(id,e){e.stopPropagation();const b=state.blocks.find(x=>x.id===id);if(b)await updateDoc(doc(db,"blocks",id),{pinned:!b.pinned});};
-window.deleteBlock=async function(id,e){e.stopPropagation();if(state.blocks.length<=1)return;await deleteDoc(doc(db,"blocks",id));if(state.activeId===id){state.activeId=null;render();}};
+window.deleteBlock=async function(id,e){
+  e.stopPropagation();
+  if(state.blocks.length<=1)return;
+  const b=state.blocks.find(x=>x.id===id);
+  const n=(b?.entries||[]).length;
+  const msg=n>0?`Apagar o bloco "${b?.name}" e suas ${n} nota${n!==1?"s":""}? Essa ação não pode ser desfeita.`:`Apagar o bloco "${b?.name}"?`;
+  if(!confirm(msg))return;
+  await deleteDoc(doc(db,"blocks",id));
+  if(state.activeId===id){state.activeId=null;render();}
+};;
 window.addBlock=async function(){const ref=await addDoc(blocksCol,{name:"Novo bloco de notas",pinned:false,order:state.blocks.length});state.activeId=ref.id;render();setTimeout(()=>{const row=document.querySelector(`.block-row[data-id="${ref.id}"] .block-name`);if(row)row.dispatchEvent(new MouseEvent("dblclick"));},300);};
 
 function renderTopbar(){

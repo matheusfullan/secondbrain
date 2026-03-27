@@ -268,7 +268,12 @@ window.deleteBlock=async function(id,e){
   await deleteDoc(doc(db,"blocks",id));
   if(state.activeId===id){state.activeId=null;render();}
 };;
-window.addBlock=async function(){const ref=await addDoc(blocksCol,{name:"Novo bloco de notas",pinned:false,order:state.blocks.length});state.activeId=ref.id;render();setTimeout(()=>{const row=document.querySelector(`.block-row[data-id="${ref.id}"] .block-name`);if(row)row.dispatchEvent(new MouseEvent("dblclick"));},300);};
+window.addBlock=async function(){
+  const hoje=new Date();
+  const nome=`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}-${String(hoje.getDate()).padStart(2,"0")}`;
+  const ref=await addDoc(blocksCol,{name:nome,pinned:false,order:state.blocks.length});
+  state.activeId=ref.id;render();
+};
 
 function renderTopbar(){
   const b=state.blocks.find(x=>x.id===state.activeId);

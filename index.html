@@ -139,8 +139,17 @@
     .img-preview img{width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border)}
     .img-preview-del{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.7);border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
     .bubble-img{max-width:260px;max-height:200px;border-radius:8px;margin-top:6px;cursor:pointer;border:1px solid var(--border);display:block}
-    .img-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:999;cursor:zoom-out}
-    .img-lightbox img{max-width:90vw;max-height:90vh;border-radius:10px}
+    .file-upload-btn{background:rgba(255,255,255,.08);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;font-size:12px;padding:2px 9px;font-family:var(--font);line-height:1.6}
+    .file-upload-btn:hover{background:rgba(255,255,255,.18);color:var(--text)}
+    #file-input{display:none}
+    .file-preview{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:12px;color:var(--text2)}
+    .file-preview-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .file-preview-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1;flex-shrink:0}
+    .file-preview-del:hover{color:var(--text)}
+    .bubble-file{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-top:6px;font-size:13px;color:var(--text2);cursor:pointer;transition:background .15s}
+    .bubble-file:hover{background:rgba(255,255,255,.12);color:var(--text)}
+    .bubble-file-icon{font-size:18px;flex-shrink:0}
+    .bubble-file-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       #sidebar{width:200px}
       #sidebar.mini{width:40px}
       #chat{padding:16px}
@@ -444,8 +453,11 @@ function renderChat(c,b){
         <button class="fmt-btn" onmousedown="event.preventDefault();fmtWrap('u')" title="Sublinhado Ctrl+U"><u>S</u></button>
         <button class="img-upload-btn" onmousedown="event.preventDefault();document.getElementById('img-input').click()" title="Anexar imagem">🖼 Imagem</button>
         <input type="file" id="img-input" accept="image/*" multiple onchange="onImgSelect(this)"/>
+        <button class="file-upload-btn" onmousedown="event.preventDefault();document.getElementById('file-input').click()" title="Anexar arquivo">📎 Arquivo</button>
+        <input type="file" id="file-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip" multiple onchange="onFileSelect(this)"/>
       </div>
       <div class="img-preview-wrap" id="img-previews"></div>
+      <div id="file-previews" style="display:flex;flex-direction:column;gap:4px;margin-top:2px"></div>
       <textarea id="note-input" rows="2" placeholder="Escreva sua anotação... (Enter para salvar, Shift+Enter para nova linha)"></textarea>
       <div class="tag-input-wrap" id="tag-input-wrap">
         <span id="tag-chips"></span>
@@ -471,12 +483,19 @@ function renderChat(c,b){
 function renderEntry(chat,b,e,readOnly=false){
   const tagsHtml=(e.tags||[]).map(t=>`<span class="tag" onclick="openTagFilter('${escHtml(t)}')">#${escHtml(t)}</span>`).join("");
   const imgsHtml=(e.images||[]).map(img=>`<img class="bubble-img" src="${img.base64}" title="${escHtml(img.name)}" onclick="openLightbox('${img.base64}')" />`).join("");
+  const filesHtml=(e.files||[]).map(f=>`
+    <div class="bubble-file" onclick="downloadBubbleFile('${f.base64}','${escHtml(f.name)}')" title="Clique para baixar">
+      <span class="bubble-file-icon">${fileIcon(f.mime)}</span>
+      <span class="bubble-file-name">${escHtml(f.name)}</span>
+      <span style="font-size:11px;color:var(--text3);flex-shrink:0">${fileSize(f.size||0)} · baixar</span>
+    </div>`).join("");
   const wrap=document.createElement("div");
   wrap.className="entry";wrap.id="entry-"+e.id;
   wrap.innerHTML=`
     <div class="bubble">
       ${e.text?`<div>${renderFmt(e.text)}</div>`:""}
       ${imgsHtml}
+      ${filesHtml}
       ${tagsHtml?`<div style="margin-top:6px">${tagsHtml}</div>`:""}
       ${!readOnly?`<div class="bubble-actions">
         <button class="bubble-btn" onclick="startEdit('${b.id}','${e.id}')">✏️</button>

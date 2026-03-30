@@ -114,7 +114,20 @@
     #tag-suggestions{position:absolute;bottom:calc(100% + 4px);left:0;background:#0d4e47;border:1px solid rgba(255,255,255,.2);border-radius:8px;overflow:hidden;z-index:100;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
     .tag-sug-item{padding:7px 12px;font-size:12px;cursor:pointer;color:var(--text2);transition:background .1s}
     .tag-sug-item:hover,.tag-sug-item.selected{background:rgba(255,255,255,.12);color:var(--text)}
-    .result-card{padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:4px;background:var(--surface);border:1px solid var(--border)}
+    #lock-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:9999}
+    #lock-screen.hidden{display:none}
+    #lock-icon{width:56px;height:56px;border-radius:16px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:28px}
+    #lock-title{font-size:22px;font-weight:600;color:var(--text)}
+    #lock-subtitle{font-size:13px;color:var(--text2)}
+    #pin-dots{display:flex;gap:12px}
+    .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:transparent;transition:background .15s,border-color .15s}
+    .pin-dot.filled{background:var(--accent);border-color:var(--accent)}
+    #pin-error{font-size:13px;color:#f87171;min-height:18px}
+    #pin-pad{display:grid;grid-template-columns:repeat(3,72px);gap:10px}
+    .pin-key{width:72px;height:72px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:var(--text);font-size:20px;font-weight:500;cursor:pointer;transition:background .15s}
+    .pin-key:hover{background:rgba(255,255,255,.12)}
+    .pin-key:active{background:rgba(255,255,255,.2)}
+    .pin-key.del{font-size:16px}
     .result-block{font-size:10px;color:rgba(255,255,255,.5);margin-bottom:2px;text-transform:uppercase;letter-spacing:.06em}
     .result-text{font-size:13px;line-height:1.5;word-break:break-word}
     mark{background:rgba(255,255,255,.25);color:#fff;border-radius:2px;padding:0 2px}
@@ -122,6 +135,36 @@
   </style>
 </head>
 <body>
+<!-- Lock screen -->
+<div id="lock-screen">
+  <div id="lock-icon">🔒</div>
+  <div id="lock-title">Segundo Cérebro</div>
+  <div id="lock-subtitle">Digite seu PIN para entrar</div>
+  <div id="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+    <div class="pin-dot" id="d4"></div>
+    <div class="pin-dot" id="d5"></div>
+  </div>
+  <div id="pin-error"></div>
+  <div id="pin-pad">
+    <button class="pin-key" onclick="pinPress('1')">1</button>
+    <button class="pin-key" onclick="pinPress('2')">2</button>
+    <button class="pin-key" onclick="pinPress('3')">3</button>
+    <button class="pin-key" onclick="pinPress('4')">4</button>
+    <button class="pin-key" onclick="pinPress('5')">5</button>
+    <button class="pin-key" onclick="pinPress('6')">6</button>
+    <button class="pin-key" onclick="pinPress('7')">7</button>
+    <button class="pin-key" onclick="pinPress('8')">8</button>
+    <button class="pin-key" onclick="pinPress('9')">9</button>
+    <button class="pin-key del" onclick="pinClear()">⌫ Limpar</button>
+    <button class="pin-key" onclick="pinPress('0')">0</button>
+    <button class="pin-key" style="opacity:0;pointer-events:none"></button>
+  </div>
+</div>
+
 <div id="app">
   <div id="sidebar">
     <div id="brand">
@@ -567,7 +610,52 @@ window.exportTxt=async function(){
   document.addEventListener("touchend",()=>{dragging=false;});
 })();
 
-bootstrap();
+// ── PIN lock ──
+const PIN="132516";
+let pinEntry="";
+
+function pinPress(d){
+  if(pinEntry.length>=6)return;
+  pinEntry+=d;
+  updateDots();
+  if(pinEntry.length===6)setTimeout(checkPin,150);
+}
+function pinClear(){pinEntry="";updateDots();document.getElementById("pin-error").textContent="";}
+function updateDots(){for(let i=0;i<6;i++)document.getElementById("d"+i).classList.toggle("filled",i<pinEntry.length);}
+function checkPin(){
+  if(pinEntry===PIN){
+    document.getElementById("lock-screen").classList.add("hidden");
+    sessionStorage.setItem("unlocked","1");
+    bootstrap();
+  }else{
+    pinEntry="";updateDots();
+    const err=document.getElementById("pin-error");
+    err.textContent="PIN incorreto. Tente novamente.";
+    // shake animation
+    const dots=document.getElementById("pin-dots");
+    dots.style.animation="none";dots.offsetHeight;
+    dots.style.animation="shake .4s ease";
+  }
+}
+// keyboard support
+document.addEventListener("keydown",ev=>{
+  if(document.getElementById("lock-screen").classList.contains("hidden"))return;
+  if(ev.key>="0"&&ev.key<="9")pinPress(ev.key);
+  if(ev.key==="Backspace")pinClear();
+});
+
+// shake keyframe
+const ks=document.createElement("style");
+ks.textContent="@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}";
+document.head.appendChild(ks);
+
+// Check if already unlocked this session
+if(sessionStorage.getItem("unlocked")==="1"){
+  document.getElementById("lock-screen").classList.add("hidden");
+  bootstrap();
+}
+
+
 </script>
 </body>
 </html>

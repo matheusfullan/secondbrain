@@ -614,13 +614,13 @@ window.exportTxt=async function(){
 const PIN="132516";
 let pinEntry="";
 
-function pinPress(d){
+window.pinPress=function(d){
   if(pinEntry.length>=6)return;
   pinEntry+=d;
   updateDots();
   if(pinEntry.length===6)setTimeout(checkPin,150);
-}
-function pinClear(){pinEntry="";updateDots();document.getElementById("pin-error").textContent="";}
+};
+window.pinClear=function(){pinEntry="";updateDots();document.getElementById("pin-error").textContent="";};
 function updateDots(){for(let i=0;i<6;i++)document.getElementById("d"+i).classList.toggle("filled",i<pinEntry.length);}
 function checkPin(){
   if(pinEntry===PIN){
@@ -631,7 +631,6 @@ function checkPin(){
     pinEntry="";updateDots();
     const err=document.getElementById("pin-error");
     err.textContent="PIN incorreto. Tente novamente.";
-    // shake animation
     const dots=document.getElementById("pin-dots");
     dots.style.animation="none";dots.offsetHeight;
     dots.style.animation="shake .4s ease";

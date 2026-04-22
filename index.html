@@ -185,6 +185,7 @@
       <button id="toggle-btn" onclick="toggleSidebar()">☰</button>
       <div id="topbar-title">Início<span id="topbar-hint"></span></div>
       <button id="export-block-btn" style="display:none" onclick="exportBlockTxt()">↓ Exportar TXT desse bloco</button>
+      <button id="todo-toggle-btn" style="display:none" onclick="toggleTodoMode()">☑ To-do</button>
     </div>
     <div id="sync-status">Conectando...</div>
     <div id="content"></div>
@@ -227,6 +228,7 @@ async function bootstrap(){
   if(ms.exists())state.title=ms.data().title||"Meu Espaço";
   else await setDoc(metaRef,{title:"Meu Espaço"});
   const bq=query(blocksCol,orderBy("order"));
+  onSnapshot(bq,async snap=>{
   onSnapshot(bq,async snap=>{
     if(snap.empty){for(let i=0;i<3;i++)await addDoc(blocksCol,{name:["Ideias gerais","Clientes","Projetos"][i],pinned:false,order:i});return;}
     state.blocks=snap.docs.map(d=>({id:d.id,...d.data(),entries:state.blocks.find(b=>b.id===d.id)?.entries||[]}));
@@ -338,7 +340,8 @@ function renderTopbar(){
       const done=async()=>{state.title=inp.value.trim()||state.title;await setDoc(metaRef,{title:state.title});inp.replaceWith(te);te.textContent="Início";hint.textContent=" · duplo clique para editar";te.appendChild(hint);renderSidebar();};
       inp.onblur=done;inp.onkeydown=ev=>{if(ev.key==="Enter")inp.blur();};
     };
-    te.textContent="Início";hint.textContent=" · duplo clique para editar";te.appendChild(hint);if(eb)eb.style.display="none";
+    te.textContent="Início";hint.textContent=" · duplo clique para editar";te.appendChild(hint);
+    if(eb)eb.style.display="none";if(tb)tb.style.display="none";
   }
   document.getElementById("home-btn").classList.toggle("active",!state.activeId);
 }
@@ -352,7 +355,8 @@ function renderContent(){
   if(state.activeId==="__tag__"){renderTagView(c);return;}
   const b=state.blocks.find(x=>x.id===state.activeId);
   if(!b){state.activeId=null;renderHome(c);return;}
-  renderChat(c,b);
+  if(b.todo)renderTodo(c,b);
+  else renderChat(c,b);
 }
 
 function renderHome(c){
@@ -626,7 +630,160 @@ function checkPin(){
   if(pinEntry===PIN){
     document.getElementById("lock-screen").classList.add("hidden");
     sessionStorage.setItem("unlocked","1");
-    bootstrap();
+    // ── Todo mode ──
+window.toggleTodoMode=async function(){
+  const b=state.blocks.find(x=>x.id===state.activeId);if(!b)return;
+  await updateDoc(doc(db,"blocks",state.activeId),{todo:!b.todo});
+};
+
+function parseTodoNodes(nodes){
+  // Build tree from flat array with depth
+  const root=[];const stack=[];
+  for(const n of nodes){
+    const node={...n,children:[]};
+    while(stack.length&&stack[stack.length-1].depth>=node.depth)stack.pop();
+    if(!stack.length)root.push(node);
+    else stack[stack.length-1].children.push(node);
+    stack.push(node);
+  }
+  return root;
+}
+
+function getDepth(prefix){
+  if(prefix==="---")return 3;
+  if(prefix==="--")return 2;
+  if(prefix==="-")return 1;
+  return 0;
+}
+
+function renderTodo(c,b){
+  const area=document.createElement("div");area.id="todo-area";
+  const nodes=b.todoNodes||[];
+  const tree=parseTodoNodes(nodes);
+  function renderTree(list,container){
+    list.forEach(node=>{
+      const wrap=document.createElement("div");wrap.dataset.id=node.id;
+      const lvl="l"+node.depth;
+      // Has children?
+      const hasKids=node.children&&node.children.length>0;
+      const collapsed=node.collapsed;
+      wrap.className="todo-node "+lvl+(collapsed?" todo-collapsed":"");
+      const toggleBtn=`<button class="todo-toggle" onclick="todoToggleCollapse('${node.id}')">${hasKids?(collapsed?"▶":"▼"):"·"}</button>`;
+      const cb=`<input type="checkbox" class="todo-cb" ${node.done?"checked":""} onchange="todoToggleDone('${node.id}',this.checked)"/>`;
+      const txt=`<div class="todo-text${node.done?" done":""}" contenteditable="true" onblur="todoEditText('${node.id}',this)" onkeydown="todoTextKey(event,'${node.id}')">${escHtml(node.text||"")}</div>`;
+      const acts=`<div class="todo-actions">
+        <button class="todo-act-btn" title="Indentar mais" onclick="todoIndent('${node.id}',1)">→</button>
+        <button class="todo-act-btn" title="Indentar menos" onclick="todoIndent('${node.id}',-1)">←</button>
+        <button class="todo-act-btn" title="Adicionar filho" onclick="todoAddChild('${node.id}')">+filho</button>
+        <button class="todo-act-btn" title="Deletar" onclick="todoDelete('${node.id}')">✕</button>
+      </div>`;
+      wrap.innerHTML=toggleBtn+cb+txt+acts;
+      if(hasKids){
+        const kids=document.createElement("div");
+        kids.className="todo-children";
+        kids.style.paddingLeft=(node.depth>0?"18px":"0");
+        renderTree(node.children,kids);
+        wrap.appendChild(kids);
+      }
+      container.appendChild(wrap);
+    });
+  }
+  renderTree(tree,area);
+  const addBtn=document.createElement("button");
+  addBtn.className="todo-add-root";addBtn.textContent="+ Adicionar item";
+  addBtn.onclick=()=>todoAddRoot(b.id);
+  area.appendChild(addBtn);
+  c.appendChild(area);
+}
+
+// ── Todo actions ──
+async function saveTodoNodes(blockId,nodes){
+  await updateDoc(doc(db,"blocks",blockId),{todoNodes:nodes});
+}
+function getTodoNodes(){return(state.blocks.find(x=>x.id===state.activeId)?.todoNodes||[]);}
+function flattenTree(tree,out=[]){for(const n of tree){const{children,...node}=n;out.push(node);flattenTree(children||[],out);}return out;}
+
+window.todoToggleDone=async function(id,done){
+  const nodes=getTodoNodes().map(n=>n.id===id?{...n,done}:n);
+  await saveTodoNodes(state.activeId,nodes);
+};
+window.todoToggleCollapse=async function(id){
+  const nodes=getTodoNodes().map(n=>n.id===id?{...n,collapsed:!n.collapsed}:n);
+  await saveTodoNodes(state.activeId,nodes);
+};
+window.todoEditText=async function(id,el){
+  const txt=el.innerText.trim();
+  const nodes=getTodoNodes().map(n=>n.id===id?{...n,text:txt}:n);
+  await saveTodoNodes(state.activeId,nodes);
+};
+window.todoTextKey=function(ev,id){
+  if(ev.key==="Escape"){ev.target.blur();return;}
+  if(ev.key==="Enter"&&!ev.shiftKey){
+    ev.preventDefault();
+    const nodes=getTodoNodes();
+    const idx=nodes.findIndex(n=>n.id===id);
+    const cur=nodes[idx];
+    const newNode={id:uid(),text:"",depth:cur.depth,done:false,collapsed:false};
+    nodes.splice(idx+1,0,newNode);
+    saveTodoNodes(state.activeId,nodes).then(()=>{
+      setTimeout(()=>{
+        const el=document.querySelector(`.todo-node[data-id="${newNode.id}"] .todo-text`);
+        if(el)el.focus();
+      },200);
+    });
+  }
+};
+window.todoIndent=async function(id,dir){
+  const nodes=getTodoNodes().map(n=>{
+    if(n.id!==id)return n;
+    const d=Math.min(3,Math.max(0,n.depth+dir));
+    return{...n,depth:d};
+  });
+  await saveTodoNodes(state.activeId,nodes);
+};
+window.todoDelete=async function(id){
+  if(!confirm("Deletar este item?"))return;
+  const nodes=getTodoNodes().filter(n=>n.id!==id);
+  await saveTodoNodes(state.activeId,nodes);
+};
+window.todoAddChild=async function(parentId){
+  const nodes=getTodoNodes();
+  const idx=nodes.findIndex(n=>n.id===parentId);
+  const parent=nodes[idx];
+  const newNode={id:uid(),text:"",depth:Math.min(3,parent.depth+1),done:false,collapsed:false};
+  nodes.splice(idx+1,0,newNode);
+  await saveTodoNodes(state.activeId,nodes);
+  setTimeout(()=>{
+    const el=document.querySelector(`.todo-node[data-id="${newNode.id}"] .todo-text`);
+    if(el)el.focus();
+  },200);
+};
+window.todoAddRoot=async function(blockId){
+  const nodes=getTodoNodes();
+  const newNode={id:uid(),text:"",depth:0,done:false,collapsed:false};
+  nodes.push(newNode);
+  await saveTodoNodes(blockId,nodes);
+  setTimeout(()=>{
+    const el=document.querySelector(`.todo-node[data-id="${newNode.id}"] .todo-text`);
+    if(el)el.focus();
+  },200);
+};
+
+// hint de sintaxe: ao digitar --- -- - no início, ajusta profundidade automaticamente
+window.todoSyntaxHint=async function(id,el){
+  const txt=el.innerText;
+  const m=txt.match(/^(---?-?)\s/);
+  if(!m)return;
+  const depth=getDepth(m[1]);
+  el.innerText=txt.replace(/^---?-?\s/,"");
+  const nodes=getTodoNodes().map(n=>n.id===id?{...n,depth,text:el.innerText}:n);
+  await saveTodoNodes(state.activeId,nodes);
+  // move cursor to end
+  const range=document.createRange();range.selectNodeContents(el);range.collapse(false);
+  const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);
+};
+
+bootstrap();
   }else{
     pinEntry="";updateDots();
     const err=document.getElementById("pin-error");
